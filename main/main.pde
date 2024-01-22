@@ -6,7 +6,6 @@ void setup(){
     size(1000, 1000);
 
     gc = new GameController();
-    gc.addTile(new Tile(new VectorInt(2, 5)));
 }
 
 void draw(){
@@ -17,9 +16,6 @@ void draw(){
 
 void mousePressed(){
     if(mouseButton == LEFT){
-        Vector mousePos = new Vector(mouseX, mouseY);
-        VectorInt snappedMousePos = mousePos.returnGridPos();
-        
-        gc.addTile(new Tile(snappedMousePos));
+        gc.mousePressed();
     }
 }

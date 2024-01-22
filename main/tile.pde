@@ -1,9 +1,10 @@
 class Tile{
     VectorInt gridPosition;
     color c;
+    PImage sprite;
 
 
-    public Tile(VectorInt gridPosition){
+    public Tile(VectorInt gridPosition, PImage sprite){
         // randomizing tile color
         int r = int(random(0,255));
         int g = int(random(0,255));
@@ -12,6 +13,7 @@ class Tile{
         c = color(r, g, b);
 
         this.gridPosition = gridPosition;
+        this.sprite = sprite;
     }
 
     public void draw(){
@@ -19,10 +21,8 @@ class Tile{
 
         pushMatrix();
         translate(drawPosition.x + TILE_SIZE/2, drawPosition.y + TILE_SIZE/2);
-        rectMode(CENTER);
-        fill(c);
-        noStroke();
-        rect(0, 0, TILE_SIZE, TILE_SIZE);
+        imageMode(CENTER);
+        image(sprite, 0, 0, TILE_SIZE, TILE_SIZE);
         popMatrix();
     }
 
