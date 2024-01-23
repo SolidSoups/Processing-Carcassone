@@ -3,7 +3,7 @@ GameController gc;
 final int TILE_SIZE = 100;
 
 void setup(){
-    size(1000, 1000);
+    size(1500, 1000);
 
     gc = new GameController();
 }
@@ -11,11 +11,15 @@ void setup(){
 void draw(){
     background(0);
 
-    gc.renderTiles();
+    gc.update();
+    gc.render();
 }
 
 void mousePressed(){
     if(mouseButton == LEFT){
-        gc.mousePressed();
+        gc.leftMousePressed();
+    }
+    if( mouseButton == RIGHT){
+        gc.rightMousePressed();
     }
 }

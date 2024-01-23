@@ -17,3 +17,8 @@ In the `GameController` class, I have added a cursor that displays the currently
 I am considering the approach of renderering the next tile at the mouse position to be quite cumbersome, as if i add ability of several players (a must for this game) it will be hard to keep an eye on the cursor to see what tile another player is going to place. I have been inspired by the carcassone game on steam to display it in a corner, add the tile to a position and then allow the player to rotate it. Although im a little skeptic about displaying all the possible locations of the tile, as it's an aid that is not found in the real live board game. It could be added as optional functionality though.
 
 Next steps are to move the next tile to the bottom corner, allow preview placement and rotation, and a submit button or cancel button.
+
+## E3: January 23, 6:20pm
+I have restructured the `GameController` class to now display the next tile in the upper right corner, and placing a tile now doesn't set it in stone, but allows a preview of the placement. The cursor has also been changed to highlight a grid cell with a grey opaque color if it is a valid cell for a tile to be placed in. Placing the tile in a valid gridcell will create a tile and place it there as a preview. If a preview is enabled, the user can also rotate the tile 90 degrees with the right click button. 
+
+Although this is some great progress, the functionality to set a tile in stone is gone. I am going to add more UI elements such as a confirm tile or cancel preview buttons. Furthermore, i feel like my code is getting more and more cluttered and i need to create some kind of system to keep everything organised. 
