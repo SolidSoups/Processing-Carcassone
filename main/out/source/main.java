@@ -263,6 +263,9 @@ class Tile{
     public final int WEST  = 3;
     int rotation = 0;
 
+    // connections
+    TileConnections tc;
+
     //tint
     boolean addHighlight = false;
 
@@ -270,6 +273,8 @@ class Tile{
         this.gridPosition = gridPosition;
         this.sprite = sprite;
         this.rotation = this.NORTH;
+
+        tc = new TileConnections(this);
     }
 
     public Tile(VectorInt gridPosition, PImage sprite, int rotation){
@@ -315,6 +320,35 @@ class Tile{
 
     public void addHighlight(){
         this.addHighlight = true;
+    }
+}
+class TileConnections{
+    // enums
+    public final int GRASS      = 0; // default int value is 0
+    public final int ROAD       = 1;
+    public final int ROAD_NORTH = 2;
+    public final int ROAD_EAST  = 3;
+    public final int ROAD_SOUTH = 4;
+    public final int ROAD_WEST  = 5;
+    public final int CITY       = 6;
+    public final int CITYNORTH  = 7;
+    public final int CITYEAST   = 8;
+    public final int CITYSOUTH  = 9;
+    public final int CITYWEST   = 10;
+    
+    //
+    int[][] array;
+
+    // Parent tile reference
+    Tile parentTile;
+
+    public TileConnections(Tile parentTile){
+        this.parentTile = parentTile;
+
+        array = new int[4][];
+        for(int i = 0; i < 4; i++){
+            print(array[i]);
+        }
     }
 }
 class UIHandler{

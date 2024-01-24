@@ -10,6 +10,9 @@ class Tile{
     public final int WEST  = 3;
     int rotation = 0;
 
+    // connections
+    TileConnections tc;
+
     //tint
     boolean addHighlight = false;
 
@@ -17,6 +20,8 @@ class Tile{
         this.gridPosition = gridPosition;
         this.sprite = sprite;
         this.rotation = this.NORTH;
+
+        tc = new TileConnections(this);
     }
 
     public Tile(VectorInt gridPosition, PImage sprite, int rotation){
