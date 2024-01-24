@@ -9,7 +9,7 @@ class Vector extends PVector{
         return new VectorInt(x, y);
     }
 
-    public VectorInt returnGridPos(){
+    public VectorInt returnGridPosition(){
         int x = int(this.x / TILE_SIZE);
         int y = int(this.y / TILE_SIZE);
         return new VectorInt(x, y);

@@ -15,6 +15,7 @@ void draw(){
     gc.render();
 }
 
+
 void mousePressed(){
     if(mouseButton == LEFT){
         gc.leftMousePressed();

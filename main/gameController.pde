@@ -1,22 +1,33 @@
 class GameController{
-    ArrayList<Tile> tiles;
+    ArrayList<Tile> placedTiles;
+
+    // handlers
+    GraphicsHandler gh;
+    UIHandler uih;
 
     // sprites
     PImage[] sprites;
     int spriteSize = 24;
+    int iSprite;
 
-    // cursor
-    int selectedSpriteIndex;
-    VectorInt snappedMousePosition;
+    // mouse position snapped to a grid
+    private VectorInt snappedMousePos;
 
     // input
-    private boolean previewPlacement = false;
+    private boolean isPreviewingPlacement = false;
+    private boolean hasConfirmedPlacement = false;
     private Tile previewTile;
-    private boolean confirmPlacement = false;
 
+
+
+    // constructor
     public GameController(){
-        tiles = new ArrayList<Tile>();
+        placedTiles = new ArrayList<Tile>();
         sprites = new PImage[spriteSize];
+
+        // init handlers
+        gh = new GraphicsHandler(this);
+        uih = new UIHandler(this);
         
         // initialize all spries
         for(int i = 0; i < spriteSize; i++){
@@ -29,141 +40,98 @@ class GameController{
 
         //add middle tile
         Vector middlePos = new Vector(width/2, height/2);
-        VectorInt middleGridPos = middlePos.returnGridPos();
+        VectorInt middleGridPos = middlePos.returnGridPosition();
         Tile starterTile = new Tile(middleGridPos, sprites[14]);
-        tiles.add(starterTile);
+        placedTiles.add(starterTile);
     }
+
+
+
+
+
+    // main methods
+
+    void update(){
+        Vector mousePosition = new Vector(mouseX, mouseY);
+        snappedMousePos = mousePosition.snapToGrid();
+
+        if(this.isPreviewingPlacement && this.hasConfirmedPlacement){
+            placeTile();
+            clearPlacementFlags();
+            selectNewRandomSprite();
+        }
+    }
+
+    public void render(){
+        gh.render();
+        uih.render();
+    }
+
 
 
 
 
     // Functionality
 
-    void update(){
-        // check current snappedMousePosition
-        Vector mousePosition = new Vector(mouseX, mouseY);
-        snappedMousePosition = mousePosition.snapToGrid();
-
-        if(this.previewPlacement && this.confirmPlacement){
-            placeTile();
-            this.confirmPlacement = false;
-            this.previewPlacement = false;
-        }
-    }
-
     void selectNewRandomSprite(){
-        selectedSpriteIndex = int(random(0, spriteSize));
+        iSprite = int(random(0, spriteSize));
     }
 
     void placeTile(){
-        // creation
-        Tile newTile = new Tile(previewTile.getGridPosition(), sprites[selectedSpriteIndex]);
+        Tile newTile = new Tile(previewTile.getGridPosition(), sprites[iSprite], previewTile.getRotation());
+        this.placedTiles.add(newTile);
+    }
+
+    void clearPlacementFlags(){
         previewTile = null;
-        selectNewRandomSprite();
-
-        this.tiles.add(newTile);
+        this.hasConfirmedPlacement = false;
+        this.isPreviewingPlacement = false;
     }
-
-
-
-
-    // Graphics
-
-    public void render(){
-        renderGraphics();
-        renderUI();
-    }
-    
-    public void renderGraphics(){
-        for(Tile t : tiles){
-            t.draw();
-        }
-        if(previewPlacement){
-            previewTile.draw();
-        }
-    }
-
-
-
-
-
-    // UI
-
-    public void renderUI(){
-        drawCursor();
-        drawNextTile();
-    }
-
-    public void drawCursor(){
-        if( !validTilePlacement(snappedMousePosition.returnGridPosition()))
-            return;
-
-        
-
-        pushMatrix();
-        pushStyle();
-        
-        translate(snappedMousePosition.x, snappedMousePosition.y);
-        rectMode(CORNER);
-        noStroke();
-        fill(255, 120);
-        rect(0, 0, TILE_SIZE, TILE_SIZE);
-        
-        popStyle();
-        popMatrix();
-    }
-
-    public void drawNextTile(){
-        // get bottom right corner location
-        float boxDelta = 0.2;
-        PVector boxSize = new PVector(height * boxDelta, height * boxDelta);
-        PVector drawLoc = new PVector(width - boxSize.x, 0);
-        float padding = height * boxDelta * 0.1;
-        PVector frameSize = new PVector(boxSize.x-padding*2, boxSize.y-padding*2);
-
-        pushMatrix();
-
-        translate(drawLoc.x, drawLoc.y);
-        fill(120, 120, 150);
-        noStroke();
-        rectMode(CORNER);
-        rect(0, 0, boxSize.x, boxSize.y);
-        translate(padding, padding);
-        imageMode(CORNER);
-        image(sprites[selectedSpriteIndex], 0, 0, frameSize.x, frameSize.y);
-
-        popMatrix();
-    }
-
 
 
 
     // input
+
     public void leftMousePressed(){
-        VectorInt previewLocation = this.snappedMousePosition.returnGridPosition();
+        if( uih.isInsideUI() ){
+            int buttonPressed = uih.leftMousePressed();
+            if( buttonPressed == uih.CANCEL){
+                clearPlacementFlags();
+            }
+            else if( buttonPressed == uih.CONFIRM){
+                this.hasConfirmedPlacement = true;
+            }
+            return;
+        }
+
+        VectorInt previewLocation = this.snappedMousePos.returnGridPosition();
 
         if( !validTilePlacement(previewLocation) )
             return;
 
-        previewTile = new Tile(previewLocation, sprites[selectedSpriteIndex]);
-        this.previewPlacement = true;
+        previewTile = new Tile(previewLocation, sprites[iSprite]);
+        previewTile.addHighlight();
+        this.isPreviewingPlacement = true;
     }
 
     public void rightMousePressed(){
-        if( previewPlacement ){
+        if( isPreviewingPlacement ){
             previewTile.rotateTile();
         }
     }
 
 
 
+
+
     // boolean methods
-    boolean validTilePlacement(VectorInt gridPosition){
+
+    public boolean validTilePlacement(VectorInt gridPosition){
         // validity
         if( !hasNeighbours(gridPosition) ){
             return false;
         }
-        for(Tile refTile : this.tiles){
+        for(Tile refTile : this.placedTiles){
             VectorInt refTile_position = refTile.getGridPosition();
             if( refTile_position.x == gridPosition.x && refTile_position.y == gridPosition.y ){
                 return false;
@@ -175,7 +143,7 @@ class GameController{
 
     boolean hasNeighbours(VectorInt gridPosition){
         int[][] theFourHorsemen = {{-1,0}, {0,-1}, {1,0}, {0,1}};
-        for(Tile t : tiles){
+        for(Tile t : placedTiles){
             VectorInt tPos = t.getGridPosition();
             for(int i = 0; i < 4; i++){
                 int dX = (gridPosition.x + theFourHorsemen[i][0]);
@@ -186,5 +154,31 @@ class GameController{
         }
 
         return false;
+    }
+
+
+
+
+
+    // getters
+
+    public ArrayList<Tile> getPlacedTiles(){
+        return this.placedTiles;
+    }
+
+    public Tile getPreviewTile(){
+        return this.previewTile;
+    }
+
+    public boolean isPreviewingPlacement(){
+        return this.isPreviewingPlacement;
+    }
+
+    public VectorInt getSnappedMousePos(){
+        return this.snappedMousePos;
+    }
+
+    public PImage getNextSprite(){
+        return this.sprites[iSprite];
     }
 }

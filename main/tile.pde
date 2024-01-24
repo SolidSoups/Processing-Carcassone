@@ -8,26 +8,27 @@ class Tile{
     public final int EAST  = 1;
     public final int SOUTH = 2;
     public final int WEST  = 3;
-    public final int[] directions = {this.NORTH, this.EAST, this.SOUTH, this.WEST};
-    int selectedDirectionIndex = 0;
+    int rotation = 0;
 
+    //tint
+    boolean addHighlight = false;
 
     public Tile(VectorInt gridPosition, PImage sprite){
-        // randomizing tile color
-        int r = int(random(0,255));
-        int g = int(random(0,255));
-        int b = int(random(0,255));
-
-        c = color(r, g, b);
-
         this.gridPosition = gridPosition;
         this.sprite = sprite;
+        this.rotation = this.NORTH;
+    }
+
+    public Tile(VectorInt gridPosition, PImage sprite, int rotation){
+        this.gridPosition = gridPosition;
+        this.sprite = sprite;
+        this.rotation = rotation;
     }
 
 
 
     public void draw(){
-        PVector drawPosition = gridPosition.scaleToGrid();
+        VectorInt drawPosition = gridPosition.scaleToGrid();
         
         pushMatrix();
         translate(drawPosition.x + TILE_SIZE/2, drawPosition.y + TILE_SIZE/2);
@@ -35,9 +36,10 @@ class Tile{
         imageMode(CENTER);
 
         // change direction if needed
-        float rotation = directions[selectedDirectionIndex] * HALF_PI;
-        rotate(rotation);
+        rotate(rotation * HALF_PI);
 
+        if( this.addHighlight )
+            tint(170, 170, 170, 150);
         image(sprite, 0, 0, TILE_SIZE, TILE_SIZE);
         popStyle();
         popMatrix();
@@ -47,10 +49,18 @@ class Tile{
         return this.gridPosition;
     }
 
+    public int getRotation(){
+        return this.rotation;
+    }
+
     public void rotateTile(){
-        if( selectedDirectionIndex < (directions.length - 1) )
-            selectedDirectionIndex += 1;
+        if( rotation < 3 )
+            rotation += 1;
         else
-            selectedDirectionIndex = 0;
+            rotation = 0;
+    }
+
+    public void addHighlight(){
+        this.addHighlight = true;
     }
 }
