@@ -40,7 +40,7 @@ The `tile` object will store information such as:
 * A 2D boolean array representing the connections allowed for each port
 
 ### Window elements
-![Window Elements](https://github.com/SolidSoups/Processing-Carcassone/blob/main/tileConnectionHelper/WindowElements.jpg)
+![Window Elements](https://github.com/SolidSoups/Processing-Carcassone/blob/main/tileConnectionHelper/WindowElements.png)
 
 The program window conists of the following elements:
 1. The current sprite we are editing, **displayed in the center of the window**.
