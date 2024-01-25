@@ -9,6 +9,8 @@ The `Tile` class handles the properties of a single tile. Right now it only disp
 
 Next steps are to add some sprites and only allow placement of tiles next to eachother, as in the board game carcassone.
 
+![missing image](https://github.com/SolidSoups/Processing-Carcassone/blob/main/captures/Capture1.PNG "Basic functionality such as adding tiles.")
+
 ## E2: January 22, 7:39pm
 I have added the basic carcassone tile set, consisting of 24 different sprites (without the river expansion). The `Tile` class has been remade to instead of rendering a square with a random color, it now displays a sprite of choosing using the included PImage class. 
 
@@ -28,5 +30,41 @@ I have yet again restructured the `GameController` class to seperate the graphic
 
 Next i need to add a way to check if two tiles can fit together. I think i can do this with a seperate program to add f.ex. roads or city connections to each side of the tile. This way, when we wanna know if two tiles can connect we look up their connections and make a connection? if that makes sense.
 
+![missing image](https://github.com/SolidSoups/Processing-Carcassone/blob/main/captures/Capture2.PNG "Image showing tiles with sprites, and a cancel and confirm placement control.")
+
 ## E5: January 24, 8.40pm (3h 50min)
 I have constructed a tool to classify every connection that is able to be made for a tile. The plan is that i can quickly go through a list of tiles and classify their differnet connections. The program works by having `connections` class that handles every tile. In every connections class there is four `port` classes, which each hold information about the connection able to be made in every direction, and where they connect to. Now i just have to find a way to save JSON files and then upload them to my main program. This new program is a little weird and clunky and probably handles data not too well, but at least im saving the data im processing. Im also wondering if it wouldve been easier to write things by hand...
+
+![missing image](https://github.com/SolidSoups/Processing-Carcassone/blob/main/captures/Capture3.PNG "Program for adding connections between tiles")
+
+## E6: January 25, 12.20pm (1h)
+I have completely restructured the entire tile helper program. I feel like it is a lot simpler and more put together now. I removed just about anything and started from scratch. 
+
+From this point, the current sprite we can edit can be cycled through with:
+* <kbd>q</kbd> - to cycle back one sprite
+* <kbd>e</kbd> - to cycle forward one sprite
+
+So I added a class called `Tile`, which will handle the ports of all four sides of the tile in different types such as `Grass`, `Road`, and `City` (stored as finals). Then it also has a 2 dimensional boolean array, which stores the directions a tile can connect as four lists, ordered from left to right as the ports beginning direction (`North`, `East`, `South`, `West` also stored as finals), and withing each first index we have a list of four booleans, each item in the list representing if we can connect to either North, East, South or West.
+
+I have designed the program so you can only edit one port at a time, switching between them with these keyboard shortcuts:
+* <kbd>&rarr;</kbd> - to cycle through current port clockwise
+* <kbd>&larr;</kbd> - to cycle through current port counter-clockwise
+
+
+To change the port type of the current port:
+* <kbd>&uarr;</kbd> - cycle through port types of current port
+
+
+And finally to enable a connection to be made from the current port to a chosen direction:
+* <kbd>w</kbd> - to enable a North connection
+* <kbd>e</kbd> - to enable a East connection
+* <kbd>s</kbd> - to enable a South connection
+* <kbd>a</kbd> - to enable a West connection
+
+I have also made sure to add so you can't connect to the same port you're editing. This system is a lot more elegant than what i hacked together last night.
+
+**Next steps are to be able to save this data as a json file, and then figure out how im going to import this data into my game**
+
+
+
+[*see 'recording4.mp4' for reference*](https://github.com/SolidSoups/Processing-Carcassone/blob/main/captures/Recording4.mp4)
