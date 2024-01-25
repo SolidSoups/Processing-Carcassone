@@ -26,7 +26,7 @@ The tile connection helper allows you to define how carcassone tile sprites can 
 * <kbd>a</kbd> : Enable port connection to west
 
 ## Design
-![Tile object](TileObjectRepresentation.jpg)
+![Tile object](https://github.com/SolidSoups/Processing-Carcassone/blob/main/tileConnectionHelper/TileObjectRepresentation.png "TileConnectionHelperImage")
 
 The program loads the sprites from the *'resources/sprites/'* directory into a list of PImages, each sprite recieving an index like so *'sprite_01.jpg'*. If there are any tile objects saved, their information will be added to the sprites when their id's match. 
 
@@ -40,7 +40,7 @@ The `tile` object will store information such as:
 * A 2D boolean array representing the connections allowed for each port
 
 ### Window elements
-![Window Elements](WindowElements.jpg)
+![Window Elements](https://github.com/SolidSoups/Processing-Carcassone/blob/main/tileConnectionHelper/WindowElements.jpg)
 
 The program window conists of the following elements:
 1. The current sprite we are editing, **displayed in the center of the window**.
