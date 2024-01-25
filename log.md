@@ -65,6 +65,6 @@ I have also made sure to add so you can't connect to the same port you're editin
 
 **Next steps are to be able to save this data as a json file, and then figure out how im going to import this data into my game**
 
-
+![missing image](https://github.com/SolidSoups/Processing-Carcassone/blob/main/captures/Capture4.PNG "TileConnectionHelperImage")
 
 [*see 'recording4.mp4' for reference*](https://github.com/SolidSoups/Processing-Carcassone/blob/main/captures/Recording4.mp4)
