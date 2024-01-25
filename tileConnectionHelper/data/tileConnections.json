@@ -1,0 +1,72 @@
+[
+  {
+    "portConnections": [
+      [
+        false,
+        true,
+        false,
+        true
+      ],
+      [
+        true,
+        false,
+        false,
+        true
+      ],
+      [
+        false,
+        false,
+        false,
+        false
+      ],
+      [
+        true,
+        true,
+        false,
+        false
+      ]
+    ],
+    "id": 0,
+    "portTypes": [
+      2,
+      2,
+      1,
+      2
+    ]
+  },
+  {
+    "portConnections": [
+      [
+        false,
+        true,
+        false,
+        true
+      ],
+      [
+        true,
+        false,
+        false,
+        true
+      ],
+      [
+        false,
+        false,
+        false,
+        false
+      ],
+      [
+        true,
+        true,
+        false,
+        false
+      ]
+    ],
+    "id": 1,
+    "portTypes": [
+      2,
+      2,
+      1,
+      2
+    ]
+  }
+]

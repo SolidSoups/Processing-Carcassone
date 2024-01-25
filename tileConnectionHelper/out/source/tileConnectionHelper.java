@@ -58,10 +58,15 @@ int currentDirection = NORTH;
 ArrayList<Tile> tiles;
 
 // colors
-int spriteColor   = color(255,0,0);
+int spriteIndexColorUnlocked   = color(0,255,0);
+int spriteIndexColorLocked   = color(255,0,0);
 int portTypeColor = color(0, 0, 255);
-int portDirColor  = color(0, 255, 0);
+int portDirColor  = color(120, 255, 120);
 int selDirColor   = color(200, 200, 200);
+
+
+
+
 
 
  public void setup(){
@@ -72,16 +77,33 @@ int selDirColor   = color(200, 200, 200);
 
     // load sprites
     tileSprites = new PImage[tileSpritesSize];
+    ArrayList<Tile> loadedTiles = new ArrayList<Tile>();
+    loadedTiles = loadTilesFromJSON();
+    IntList loadedIDs = new IntList();
+    for(Tile t : loadedTiles)
+        loadedIDs.append(t.getID());
     for(int i = 0; i < tileSpritesSize; i++){
         String s = str(i);
         while( s.length() < 2)
             s = "0" + s;
         tileSprites[i] = loadImage("resources/sprites/sprite_" + s + ".png");
 
-        // init tile object for i
-        tiles.add(new Tile(i));
+        // init tile objects
+        // check if we saved that tile
+        boolean loadSavedTile = false;
+        for(int id : loadedIDs){
+            if( id == i )
+                loadSavedTile = true;
+        }
+        if( loadSavedTile )
+            tiles.add(loadedTiles.get(i));
+        else
+            tiles.add(new Tile(i));
     }
 }
+
+
+
 
 
 
@@ -90,7 +112,10 @@ int selDirColor   = color(200, 200, 200);
     background(0);
 
     // draw current sprite index
-    fill(spriteColor);
+    if( !tiles.get(spriteIndex).getLock() )
+        fill(spriteIndexColorUnlocked);
+    else
+        fill(spriteIndexColorLocked);
     
     textSize(50);
     textAlign(TOP, TOP);
@@ -145,6 +170,10 @@ int selDirColor   = color(200, 200, 200);
 
 
 
+
+
+
+
  public void keyPressed(){
     // switch sprite
     if(key == 'e'){
@@ -156,6 +185,16 @@ int selDirColor   = color(200, 200, 200);
         spriteIndex--;
         if( spriteIndex < 0)
             spriteIndex = tileSpritesSize - 1;
+    }
+
+    // lock tile editing
+    if(key == 'p'){
+        tiles.get(spriteIndex).flipLock();
+    }
+
+    // save connections
+    if(key == 'b'){
+        saveTilesAsJSON();
     }
 
     // switch current port directions
@@ -196,11 +235,108 @@ int selDirColor   = color(200, 200, 200);
 }
 
 
+
+
+
+
+
+ public void saveTilesAsJSON(){
+    println("\nSaving locked tiles as JSON file!");
+    JSONArray tilePieces = new JSONArray();
+
+    for(Tile t : tiles){
+        if( !t.getLock() ) continue;
+        println("---Looping through tile ID: " + t.getID());
+
+        // create tile object
+        JSONObject tile    = new JSONObject();
+
+        // set id
+        JSONObject tileID = new JSONObject();
+        tile.setInt("id", t.getID());
+        println("Set tile ID...");
+
+        // set a port array as (key, value) --> ("portTypes", {ROAD, CITY, GRASS, GRASS})
+        JSONArray  portTypes = new JSONArray();
+        for(int i=0; i<4; i++){ 
+            portTypes.append(t.getPortType(i));
+        }
+        tile.setJSONArray("portTypes", portTypes);
+        println("Set tile portTypes...");
+
+        // set a port array as (key, value) --> ("portConnections", {{WEST, SOUTH}, null, {NORTH}, null})
+        JSONArray portsConnectionsX = new JSONArray();
+        for(int x=0; x<4; x++){
+            boolean[] portConnections = t.getPortConnections(x);
+            JSONArray portsConnectionsY = new JSONArray();
+            for(int y = 0; y<4; y++){
+                portsConnectionsY.append(portConnections[y]);
+            }
+            portsConnectionsX.append(portsConnectionsY);
+        }
+        tile.setJSONArray("portConnections", portsConnectionsX);
+        println("Set tile portConnections...");
+
+        // append tile to json tile array
+        tilePieces.append(tile);
+    }
+
+    saveJSONArray(tilePieces, "data/tileConnections.json");
+    println("Data saved");
+}
+
+
+
+
+
+
+
+ public ArrayList<Tile> loadTilesFromJSON(){
+    JSONArray tilePieces = loadJSONArray("data/tileConnections.json");
+    ArrayList<Tile> loadedTiles = new ArrayList<Tile>();
+
+    for (int i=0; i < tilePieces.size(); i++){
+        int tileID;
+        int[] portTypes = new int[4];
+        boolean[][] portConnections = new boolean[4][4];
+        
+        // load tile object at index
+        JSONObject tile = tilePieces.getJSONObject(i);
+
+        // retrieve tile id
+        tileID = tile.getInt("id");
+
+        // retrieve tile portTypes
+        JSONArray portTypesArray   = tile.getJSONArray("portTypes");
+        portTypes = portTypesArray.toIntArray();
+
+        // retrieve boolean portsConnections
+        JSONArray portsConnectionsX = tile.getJSONArray("portConnections");
+        for(int x=0; x<4; x++){
+            JSONArray portsConnectionsY = portsConnectionsX.getJSONArray(x);
+            for(int y=0; y<4; y++){
+                portConnections[x][y] = portsConnectionsY.getBoolean(y);
+            }
+        }
+
+        // add a tile with this information
+        Tile newTile = new Tile(tileID, portTypes, portConnections);
+        loadedTiles.add(newTile);
+    }
+    
+    println("\nLoaded " + loadedTiles.size() + " tiles from JSON file!");
+    return loadedTiles;
+}
+
+
 class Tile{
     // organized as North, East, South, West: with each element being either a City, Road or Grass.
     int[] portTypes = {GRASS, GRASS, GRASS, GRASS};
     // organized as North, East, South, West: with each 4 elements being a collection of which direction the port connects to.
     boolean[][] portConnections;
+
+    // lock editing
+    private boolean lock = false;
 
     // sprite id for tile
     int id;
@@ -208,6 +344,17 @@ class Tile{
     Tile(int id){
         this.id = id;
         this.portConnections = new boolean[4][4];
+    }
+
+    Tile(int id, int[] portTypes, boolean[][] portConnections){
+        this.id = id;
+        this.portTypes = portTypes;
+        this.portConnections = portConnections;
+        this.lock = true;
+    }
+
+    public int getID(){
+        return this.id;
     }
 
     public int[] getPortTypes(){
@@ -219,6 +366,7 @@ class Tile{
     }
 
     public void setPortType(int i, int value){
+        if(lock) return;
         if( value < 0 || value >= 3 )
             throw new InvalidParameterException("value out of bounds.");
         this.portTypes[i] = value;
@@ -229,11 +377,27 @@ class Tile{
     }
 
     public void flipPortConnection(int i, int portDirection){
+        if( lock ) return;
+        if( i == portDirection )
+            return;
         this.portConnections[i][portDirection] = !this.portConnections[i][portDirection];
     }
 
+     public String getLockString(){
+        if(lock) return "locked";
+        return "unlocked";
+    }
+
+    public boolean getLock(){
+        return this.lock;
+    }
+
+    public void flipLock(){
+        this.lock = !lock;
+    }
+
     public String toString(){
-        String s = "\nID: " + this.id + "\n";
+        String s = "\nID: " + this.id + " " + this.getLockString() + "\n";
         for(int i=0; i<4; i++){
             s += typeNames[this.portTypes[i]] + ": ";
             for(int y=0; y<4; y++){

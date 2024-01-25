@@ -68,3 +68,12 @@ I have also made sure to add so you can't connect to the same port you're editin
 ![missing image](https://github.com/SolidSoups/Processing-Carcassone/blob/main/captures/Capture4.PNG "TileConnectionHelperImage")
 
 [*see 'recording4.mp4' for reference*](https://github.com/SolidSoups/Processing-Carcassone/blob/main/captures/Recording4.mp4)
+
+## E7: January 25, 7:06 (5h)
+In the tile connection helper program, i added the ability to lock editing on sprites, so that i couldnt make any mistakes once i was sure it was done. There after i added the ability to save every sprite that has been locked into a json file. When the program starts up next time, it will load the json file and match the data to each sprite, so that we can continue to work on it. The save button is 'b'. 
+
+I found it surprisingly easy to save data as a JSON file and will continue to use this for the foreseeable future.
+
+**Next steps are to process all the tile connections, import it into the main game, and create a rule system for how tiles can connect to eachother**
+
+[*see 'readme.md' for reference on how the program works*](https://github.com/SolidSoups/Processing-Carcassone/tree/main/tileConnectionHelper/readme.md)

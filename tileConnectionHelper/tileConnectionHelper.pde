@@ -39,10 +39,15 @@ int currentDirection = NORTH;
 ArrayList<Tile> tiles;
 
 // colors
-color spriteColor   = color(255,0,0);
+color spriteIndexColorUnlocked   = color(0,255,0);
+color spriteIndexColorLocked   = color(255,0,0);
 color portTypeColor = color(0, 0, 255);
-color portDirColor  = color(0, 255, 0);
+color portDirColor  = color(120, 255, 120);
 color selDirColor   = color(200, 200, 200);
+
+
+
+
 
 
 void setup(){
@@ -53,16 +58,33 @@ void setup(){
 
     // load sprites
     tileSprites = new PImage[tileSpritesSize];
+    ArrayList<Tile> loadedTiles = new ArrayList<Tile>();
+    loadedTiles = loadTilesFromJSON();
+    IntList loadedIDs = new IntList();
+    for(Tile t : loadedTiles)
+        loadedIDs.append(t.getID());
     for(int i = 0; i < tileSpritesSize; i++){
         String s = str(i);
         while( s.length() < 2)
             s = "0" + s;
         tileSprites[i] = loadImage("resources/sprites/sprite_" + s + ".png");
 
-        // init tile object for i
-        tiles.add(new Tile(i));
+        // init tile objects
+        // check if we saved that tile
+        boolean loadSavedTile = false;
+        for(int id : loadedIDs){
+            if( id == i )
+                loadSavedTile = true;
+        }
+        if( loadSavedTile )
+            tiles.add(loadedTiles.get(i));
+        else
+            tiles.add(new Tile(i));
     }
 }
+
+
+
 
 
 
@@ -71,7 +93,10 @@ void draw(){
     background(0);
 
     // draw current sprite index
-    fill(spriteColor);
+    if( !tiles.get(spriteIndex).getLock() )
+        fill(spriteIndexColorUnlocked);
+    else
+        fill(spriteIndexColorLocked);
     
     textSize(50);
     textAlign(TOP, TOP);
@@ -126,6 +151,10 @@ void draw(){
 
 
 
+
+
+
+
 void keyPressed(){
     // switch sprite
     if(key == 'e'){
@@ -137,6 +166,16 @@ void keyPressed(){
         spriteIndex--;
         if( spriteIndex < 0)
             spriteIndex = tileSpritesSize - 1;
+    }
+
+    // lock tile editing
+    if(key == 'p'){
+        tiles.get(spriteIndex).flipLock();
+    }
+
+    // save connections
+    if(key == 'b'){
+        saveTilesAsJSON();
     }
 
     // switch current port directions
@@ -174,4 +213,98 @@ void keyPressed(){
             i = 0;
         tiles.get(spriteIndex).setPortType(currentDirection, i);
     }
+}
+
+
+
+
+
+
+
+void saveTilesAsJSON(){
+    println("\nSaving locked tiles as JSON file!");
+    JSONArray tilePieces = new JSONArray();
+
+    for(Tile t : tiles){
+        if( !t.getLock() ) continue;
+        println("---Looping through tile ID: " + t.getID());
+
+        // create tile object
+        JSONObject tile    = new JSONObject();
+
+        // set id
+        JSONObject tileID = new JSONObject();
+        tile.setInt("id", t.getID());
+        println("Set tile ID...");
+
+        // set a port array as (key, value) --> ("portTypes", {ROAD, CITY, GRASS, GRASS})
+        JSONArray  portTypes = new JSONArray();
+        for(int i=0; i<4; i++){ 
+            portTypes.append(t.getPortType(i));
+        }
+        tile.setJSONArray("portTypes", portTypes);
+        println("Set tile portTypes...");
+
+        // set a port array as (key, value) --> ("portConnections", {{WEST, SOUTH}, null, {NORTH}, null})
+        JSONArray portsConnectionsX = new JSONArray();
+        for(int x=0; x<4; x++){
+            boolean[] portConnections = t.getPortConnections(x);
+            JSONArray portsConnectionsY = new JSONArray();
+            for(int y = 0; y<4; y++){
+                portsConnectionsY.append(portConnections[y]);
+            }
+            portsConnectionsX.append(portsConnectionsY);
+        }
+        tile.setJSONArray("portConnections", portsConnectionsX);
+        println("Set tile portConnections...");
+
+        // append tile to json tile array
+        tilePieces.append(tile);
+    }
+
+    saveJSONArray(tilePieces, "data/tileConnections.json");
+    println("Data saved");
+}
+
+
+
+
+
+
+
+ArrayList<Tile> loadTilesFromJSON(){
+    JSONArray tilePieces = loadJSONArray("data/tileConnections.json");
+    ArrayList<Tile> loadedTiles = new ArrayList<Tile>();
+
+    for (int i=0; i < tilePieces.size(); i++){
+        int tileID;
+        int[] portTypes = new int[4];
+        boolean[][] portConnections = new boolean[4][4];
+        
+        // load tile object at index
+        JSONObject tile = tilePieces.getJSONObject(i);
+
+        // retrieve tile id
+        tileID = tile.getInt("id");
+
+        // retrieve tile portTypes
+        JSONArray portTypesArray   = tile.getJSONArray("portTypes");
+        portTypes = portTypesArray.toIntArray();
+
+        // retrieve boolean portsConnections
+        JSONArray portsConnectionsX = tile.getJSONArray("portConnections");
+        for(int x=0; x<4; x++){
+            JSONArray portsConnectionsY = portsConnectionsX.getJSONArray(x);
+            for(int y=0; y<4; y++){
+                portConnections[x][y] = portsConnectionsY.getBoolean(y);
+            }
+        }
+
+        // add a tile with this information
+        Tile newTile = new Tile(tileID, portTypes, portConnections);
+        loadedTiles.add(newTile);
+    }
+    
+    println("\nLoaded " + loadedTiles.size() + " tiles from JSON file!");
+    return loadedTiles;
 }
