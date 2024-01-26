@@ -1,21 +1,23 @@
+/*
+    Author: SolidSoups
+    Date: 1/25/2024
+ */
 
-// types
+
+// FINALS
 public final int GRASS      = 0; // default int value is 0
 public final int ROAD       = 1;
 public final int CITY       = 2;
-// string for types
 public final String[] typeNames = {
     "grass", 
     "road",
     "city",
 };
 
-// directions
 public final int NORTH = 0;
 public final int EAST  = 1;
 public final int SOUTH = 2;
 public final int WEST  = 3;
-// strings for directions
 public final String[] directionNames = {
     "north",
     "east",
@@ -23,63 +25,72 @@ public final String[] directionNames = {
     "west"
 };
 
-// Error code
-public final int ERROR = 100;
-
-
-
-// sprites
+// SPRITES
 PImage[] tileSprites;
 int tileSpritesSize = 24;
 
+// TILE OBJECTS
+ArrayList<Tile> tiles;
+
+// COUNTERS
 int spriteIndex = 0;
 int currentDirection = NORTH;
 
-// tile objects
-ArrayList<Tile> tiles;
-
-// colors
+// COLORS
 color spriteIndexColorUnlocked   = color(0,255,0);
 color spriteIndexColorLocked   = color(255,0,0);
 color portTypeColor = color(0, 0, 255);
 color portDirColor  = color(120, 255, 120);
 color selDirColor   = color(200, 200, 200);
 
+// POSITIONS TO DISPLAY PORT INFORMATION
+PVector[] positions = {
+    new PVector(300, 50),
+    new PVector(500, 250),
+    new PVector(300, 350),
+    new PVector(100, 250)
+}; 
 
 
 
 
 
+// SETUP--
 void setup(){
     size(600, 600);
 
-    // init tile array
+    // Initialize arrays
     tiles = new ArrayList<Tile>();
-
-    // load sprites
     tileSprites = new PImage[tileSpritesSize];
+
+    // create array of our loaded tiles
     ArrayList<Tile> loadedTiles = new ArrayList<Tile>();
     loadedTiles = loadTilesFromJSON();
+
+    // here we create a list of the loaded tiles id's, so we know which sprites have been saved
     IntList loadedIDs = new IntList();
     for(Tile t : loadedTiles)
         loadedIDs.append(t.getID());
+    loadedIDs.sort();
+
+    // loop through count of tile sprites, load sprites into PImage array, add a loaded tile if the id exists in 'loadedIDs', otherwise load a generic tile
     for(int i = 0; i < tileSpritesSize; i++){
+        // format index as "01" or "10", load image into sprite array
         String s = str(i);
         while( s.length() < 2)
             s = "0" + s;
         tileSprites[i] = loadImage("resources/sprites/sprite_" + s + ".png");
 
-        // init tile objects
-        // check if we saved that tile
-        boolean loadSavedTile = false;
-        for(int id : loadedIDs){
-            if( id == i )
-                loadSavedTile = true;
-        }
-        if( loadSavedTile )
-            tiles.add(loadedTiles.get(i));
-        else
-            tiles.add(new Tile(i));
+        // load tiles if we have saved them and reset the loop if so
+        if( loadedIDs.size() >= 1 )
+            if( i == loadedIDs.get(0) ){
+                loadedIDs.remove(0);
+                tiles.add(loadedTiles.get(i));
+                continue;
+            }
+        
+        // add a generic tile since we have not loaded it
+        tiles.add(new Tile(i));
     }
 }
 
@@ -88,37 +99,33 @@ void setup(){
 
 
 
-
+// DRAW--
 void draw(){
     background(0);
 
-    // draw current sprite index
+    // change ID Text color depending on lock state
     if( !tiles.get(spriteIndex).getLock() )
         fill(spriteIndexColorUnlocked);
     else
         fill(spriteIndexColorLocked);
     
+    // display ID Text in upper left corner
     textSize(50);
     textAlign(TOP, TOP);
     text("ID: " + str(spriteIndex), 30, 10);
 
-    // draw current sprite
+    // display current sprite in the middle
     image(tileSprites[spriteIndex], 100, 100, 400, 400);
 
-    // draw all connections on current sprite
-    pushStyle();
+    // set some styles
     textSize(30);
     textAlign(CENTER, TOP);
 
-    PVector[] positions = {
-        new PVector(300, 50),
-        new PVector(500, 250),
-        new PVector(300, 350),
-        new PVector(100, 250)
-    }; 
+    // get all port types
     int[] portTypes = tiles.get(spriteIndex).getPortTypes();
-    
+    // loop through all four ports from North to West clockwise
     for(int i=0; i<4; i++){
+        // if we are editing the current port, display a rect as a marker
         if(i == currentDirection){
             pushMatrix();
             translate(width/2, height/2);
@@ -129,18 +136,22 @@ void draw(){
             popMatrix();
         }
 
-        String directionName = typeNames[portTypes[i]];
+        // display the port at that direction
+        String currentPortTypeName = typeNames[portTypes[i]];
         fill(255);
-        text(directionName, positions[i].x + 1, positions[i].y + 0.7f);
+        text(currentPortTypeName, positions[i].x + 1, positions[i].y + 0.7f);
         fill(portTypeColor);
-        text(directionName, positions[i].x, positions[i].y);
+        text(currentPortTypeName, positions[i].x, positions[i].y);
 
+        // loop through all connections for current port, create a list of their string representations
         boolean[] connections = tiles.get(spriteIndex).getPortConnections(i);
         String s = "";
         for(int n=0; n<4; n++){
             if( connections[n] )
                 s += directionNames[n] + "\n";
         }
+
+        // display list of connections for current port under the portType, with a slight stroke
         fill(0);
         text(s, positions[i].x + 1, positions[i].y + 30.7f);
         fill(portDirColor);
@@ -152,60 +163,63 @@ void draw(){
 
 
 
-
-
-
+// KEY PRESS EVENTS
 void keyPressed(){
-    // switch sprite
+    // Next tile 
     if(key == 'e'){
         spriteIndex++;
         if( spriteIndex >= tileSpritesSize )
             spriteIndex = 0;
     }
+    // Previous tile
     if(key == 'q'){
         spriteIndex--;
         if( spriteIndex < 0)
             spriteIndex = tileSpritesSize - 1;
     }
 
-    // lock tile editing
+    // Lock editing for current tile
     if(key == 'p'){
         tiles.get(spriteIndex).flipLock();
     }
 
-    // save connections
+    // Save all locked tiles
     if(key == 'b'){
         saveTilesAsJSON();
     }
 
-    // switch current port directions
+    // enable north connection
     if(key == 'w'){
         tiles.get(spriteIndex).flipPortConnection(currentDirection, NORTH);
     }
+    // enable east connection
     if(key == 'd'){
         tiles.get(spriteIndex).flipPortConnection(currentDirection, EAST);
     }
+    // enable south connection
     if(key == 's'){
         tiles.get(spriteIndex).flipPortConnection(currentDirection, SOUTH);
     }
+    // enable west connection
     if(key == 'a'){
         tiles.get(spriteIndex).flipPortConnection(currentDirection, WEST);
     }
 
 
-    // switch port
+    // cycle current port clockswise
     if(keyCode == RIGHT){
         currentDirection++;
         if( currentDirection >= 4 )
             currentDirection = 0;
     }
+    // cycle current port counter-clockwise
     if(keyCode == LEFT){
         currentDirection--;
         if( currentDirection < 0)
             currentDirection = 3;
     }
 
-    // cycle the port type
+    // cycle portTypes
     if(keyCode == UP){
         int i = tiles.get(spriteIndex).getPortType(currentDirection);
         i++;
@@ -220,24 +234,25 @@ void keyPressed(){
 
 
 
-
+// Save all locked Tile objects as a JSON file
 void saveTilesAsJSON(){
     println("\nSaving locked tiles as JSON file!");
     JSONArray tilePieces = new JSONArray();
-
+    
     for(Tile t : tiles){
+        // return if Tile object t is not locked
         if( !t.getLock() ) continue;
+
         println("---Looping through tile ID: " + t.getID());
 
-        // create tile object
+        // Create a Tile JSONObject
         JSONObject tile    = new JSONObject();
 
-        // set id
-        JSONObject tileID = new JSONObject();
+        // Set the ID
         tile.setInt("id", t.getID());
         println("Set tile ID...");
 
-        // set a port array as (key, value) --> ("portTypes", {ROAD, CITY, GRASS, GRASS})
+        // set portTypes as an array such as ex. {GRASS, ROAD, CITY, ROAD}
         JSONArray  portTypes = new JSONArray();
         for(int i=0; i<4; i++){ 
             portTypes.append(t.getPortType(i));
@@ -245,7 +260,7 @@ void saveTilesAsJSON(){
         tile.setJSONArray("portTypes", portTypes);
         println("Set tile portTypes...");
 
-        // set a port array as (key, value) --> ("portConnections", {{WEST, SOUTH}, null, {NORTH}, null})
+        // set a portConnections as a 2D boolean array, x being the origin port and y being if it connects to that port
         JSONArray portsConnectionsX = new JSONArray();
         for(int x=0; x<4; x++){
             boolean[] portConnections = t.getPortConnections(x);
@@ -262,6 +277,7 @@ void saveTilesAsJSON(){
         tilePieces.append(tile);
     }
 
+    // Save array
     saveJSONArray(tilePieces, "data/tileConnections.json");
     println("Data saved");
 }
@@ -271,12 +287,14 @@ void saveTilesAsJSON(){
 
 
 
-
+// Load all saved Tile objects and return an ArrayList<Tile> object
 ArrayList<Tile> loadTilesFromJSON(){
     JSONArray tilePieces = loadJSONArray("data/tileConnections.json");
     ArrayList<Tile> loadedTiles = new ArrayList<Tile>();
 
+    // loop through available loaded Tile objects
     for (int i=0; i < tilePieces.size(); i++){
+        // variables for each tile object
         int tileID;
         int[] portTypes = new int[4];
         boolean[][] portConnections = new boolean[4][4];
