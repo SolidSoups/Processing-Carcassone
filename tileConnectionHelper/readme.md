@@ -20,7 +20,7 @@ The way I have chosen to go about this problem, is to catagorize each side of th
 
 With this idea, I created a class called `Tile`. The tile object will store properties such as the **sprite ID**, **lock state**, **port types** for every compass direction and a **connection table** table for what connections can be made. Let me go into detail about how the two latter work.
 
-![Tile object](https://github.com/SolidSoups/Processing-Carcassone/blob/main/tileConnectionHelper/TilePortVisualization.png "Tile Port Visualization")
+![Tile Object Representation](https://github.com/SolidSoups/Processing-Carcassone/blob/main/tileConnectionHelper/TileObjectRepresentation.png "Tile Object Representation")
 
 **Port types** is an integer array that stores 4 values. The indexes for that array will range from 0 to 3. Therefore I created an enum for every compass direction, which ranges from 0 (being North) to 3 (being West). This will make my life a lot easier. The array will store values from 0 to 2, representing the three port types we can have. I have also created a enum in the same fashion for the port types.
 
