@@ -17,6 +17,11 @@ import java.io.IOException;
 
 public class tileConnectionHelper extends PApplet {
 
+/*
+    Author: SolidSoups
+    Date: 1/25/2024
+ */
+
 
 // FINALS
 public final int GRASS      = 0; // default int value is 0
@@ -33,10 +38,10 @@ public final int EAST  = 1;
 public final int SOUTH = 2;
 public final int WEST  = 3;
 public final String[] directionNames = {
-    "north",
-    "east",
-    "south",
-    "west"
+    "north ^",
+    "east >",
+    "south V",
+    "west <"
 };
 
 // SPRITES
@@ -57,6 +62,14 @@ int portTypeColor = color(0, 0, 255);
 int portDirColor  = color(120, 255, 120);
 int selDirColor   = color(200, 200, 200);
 
+// POSITIONS TO DISPLAY PORT INFORMATION
+PVector[] positions = {
+    new PVector(300, 50),
+    new PVector(500, 250),
+    new PVector(300, 350),
+    new PVector(100, 250)
+}; 
+
 
 
 
@@ -69,28 +82,34 @@ int selDirColor   = color(200, 200, 200);
     tiles = new ArrayList<Tile>();
     tileSprites = new PImage[tileSpritesSize];
 
-
+    // create array of our loaded tiles
     ArrayList<Tile> loadedTiles = new ArrayList<Tile>();
     loadedTiles = loadTilesFromJSON();
 
-    IntList loadedIDs = new IntList(); // keep track of what id's we haven't loaded
+    // here we create a list of the loaded tiles id's, so we know which sprites have been saved
+    IntList loadedIDs = new IntList();
     for(Tile t : loadedTiles)
         loadedIDs.append(t.getID());
     loadedIDs.sort();
 
+    // loop through count of tile sprites, load sprites into PImage array, add a loaded tile if the id exists in 'loadedIDs', otherwise load a generic tile
     for(int i = 0; i < tileSpritesSize; i++){
+        // format index as "01" or "10", load image into sprite array
         String s = str(i);
         while( s.length() < 2)
             s = "0" + s;
         tileSprites[i] = loadImage("resources/sprites/sprite_" + s + ".png");
 
+        // load tiles if we have saved them and reset the loop if so
         if( loadedIDs.size() >= 1 )
             if( i == loadedIDs.get(0) ){
                 loadedIDs.remove(0);
+                spriteIndex = i;
                 tiles.add(loadedTiles.get(i));
                 continue;
             }
         
+        // add a generic tile since we have not loaded it
         tiles.add(new Tile(i));
     }
 }
@@ -104,33 +123,29 @@ int selDirColor   = color(200, 200, 200);
  public void draw(){
     background(0);
 
-    // draw current sprite index
+    // change ID Text color depending on lock state
     if( !tiles.get(spriteIndex).getLock() )
         fill(spriteIndexColorUnlocked);
     else
         fill(spriteIndexColorLocked);
     
+    // display ID Text in upper left corner
     textSize(50);
     textAlign(TOP, TOP);
     text("ID: " + str(spriteIndex), 30, 10);
 
-    // draw current sprite
+    // display current sprite in the middle
     image(tileSprites[spriteIndex], 100, 100, 400, 400);
 
-    // draw all connections on current sprite
-    pushStyle();
+    // set some styles
     textSize(30);
     textAlign(CENTER, TOP);
 
-    PVector[] positions = {
-        new PVector(300, 50),
-        new PVector(500, 250),
-        new PVector(300, 350),
-        new PVector(100, 250)
-    }; 
+    // get all port types
     int[] portTypes = tiles.get(spriteIndex).getPortTypes();
-    
+    // loop through all four ports from North to West clockwise
     for(int i=0; i<4; i++){
+        // if we are editing the current port, display a rect as a marker
         if(i == currentDirection){
             pushMatrix();
             translate(width/2, height/2);
@@ -141,18 +156,22 @@ int selDirColor   = color(200, 200, 200);
             popMatrix();
         }
 
-        String directionName = typeNames[portTypes[i]];
+        // display the port at that direction
+        String currentPortTypeName = typeNames[portTypes[i]];
         fill(255);
-        text(directionName, positions[i].x + 1, positions[i].y + 0.7f);
+        text(currentPortTypeName, positions[i].x + 1, positions[i].y + 0.7f);
         fill(portTypeColor);
-        text(directionName, positions[i].x, positions[i].y);
+        text(currentPortTypeName, positions[i].x, positions[i].y);
 
+        // loop through all connections for current port, create a list of their string representations
         boolean[] connections = tiles.get(spriteIndex).getPortConnections(i);
         String s = "";
         for(int n=0; n<4; n++){
             if( connections[n] )
                 s += directionNames[n] + "\n";
         }
+
+        // display list of connections for current port under the portType, with a slight stroke
         fill(0);
         text(s, positions[i].x + 1, positions[i].y + 30.7f);
         fill(portDirColor);
@@ -164,60 +183,63 @@ int selDirColor   = color(200, 200, 200);
 
 
 
-
-
-
+// KEY PRESS EVENTS
  public void keyPressed(){
-    // switch sprite
+    // Next tile 
     if(key == 'e'){
         spriteIndex++;
         if( spriteIndex >= tileSpritesSize )
             spriteIndex = 0;
     }
+    // Previous tile
     if(key == 'q'){
         spriteIndex--;
         if( spriteIndex < 0)
             spriteIndex = tileSpritesSize - 1;
     }
 
-    // lock tile editing
-    if(key == 'p'){
+    // Lock editing for current tile
+    if(keyCode == DOWN){
         tiles.get(spriteIndex).flipLock();
     }
 
-    // save connections
+    // Save all locked tiles
     if(key == 'b'){
         saveTilesAsJSON();
     }
 
-    // switch current port directions
+    // enable north connection
     if(key == 'w'){
         tiles.get(spriteIndex).flipPortConnection(currentDirection, NORTH);
     }
+    // enable east connection
     if(key == 'd'){
         tiles.get(spriteIndex).flipPortConnection(currentDirection, EAST);
     }
+    // enable south connection
     if(key == 's'){
         tiles.get(spriteIndex).flipPortConnection(currentDirection, SOUTH);
     }
+    // enable west connection
     if(key == 'a'){
         tiles.get(spriteIndex).flipPortConnection(currentDirection, WEST);
     }
 
 
-    // switch port
+    // cycle current port clockswise
     if(keyCode == RIGHT){
         currentDirection++;
         if( currentDirection >= 4 )
             currentDirection = 0;
     }
+    // cycle current port counter-clockwise
     if(keyCode == LEFT){
         currentDirection--;
         if( currentDirection < 0)
             currentDirection = 3;
     }
 
-    // cycle the port type
+    // cycle portTypes
     if(keyCode == UP){
         int i = tiles.get(spriteIndex).getPortType(currentDirection);
         i++;
@@ -232,24 +254,25 @@ int selDirColor   = color(200, 200, 200);
 
 
 
-
+// Save all locked Tile objects as a JSON file
  public void saveTilesAsJSON(){
     println("\nSaving locked tiles as JSON file!");
     JSONArray tilePieces = new JSONArray();
-
+    
     for(Tile t : tiles){
+        // return if Tile object t is not locked
         if( !t.getLock() ) continue;
+
         println("---Looping through tile ID: " + t.getID());
 
-        // create tile object
+        // Create a Tile JSONObject
         JSONObject tile    = new JSONObject();
 
-        // set id
-        JSONObject tileID = new JSONObject();
+        // Set the ID
         tile.setInt("id", t.getID());
         println("Set tile ID...");
 
-        // set a port array as (key, value) --> ("portTypes", {ROAD, CITY, GRASS, GRASS})
+        // set portTypes as an array such as ex. {GRASS, ROAD, CITY, ROAD}
         JSONArray  portTypes = new JSONArray();
         for(int i=0; i<4; i++){ 
             portTypes.append(t.getPortType(i));
@@ -257,7 +280,7 @@ int selDirColor   = color(200, 200, 200);
         tile.setJSONArray("portTypes", portTypes);
         println("Set tile portTypes...");
 
-        // set a port array as (key, value) --> ("portConnections", {{WEST, SOUTH}, null, {NORTH}, null})
+        // set a portConnections as a 2D boolean array, x being the origin port and y being if it connects to that port
         JSONArray portsConnectionsX = new JSONArray();
         for(int x=0; x<4; x++){
             boolean[] portConnections = t.getPortConnections(x);
@@ -274,6 +297,7 @@ int selDirColor   = color(200, 200, 200);
         tilePieces.append(tile);
     }
 
+    // Save array
     saveJSONArray(tilePieces, "data/tileConnections.json");
     println("Data saved");
 }
@@ -283,12 +307,14 @@ int selDirColor   = color(200, 200, 200);
 
 
 
-
+// Load all saved Tile objects and return an ArrayList<Tile> object
  public ArrayList<Tile> loadTilesFromJSON(){
     JSONArray tilePieces = loadJSONArray("data/tileConnections.json");
     ArrayList<Tile> loadedTiles = new ArrayList<Tile>();
 
+    // loop through available loaded Tile objects
     for (int i=0; i < tilePieces.size(); i++){
+        // variables for each tile object
         int tileID;
         int[] portTypes = new int[4];
         boolean[][] portConnections = new boolean[4][4];
@@ -339,6 +365,7 @@ class Tile{
         this.portConnections = new boolean[4][4];
     }
 
+    // constructor for creating a loaded tile object
     Tile(int id, int[] portTypes, boolean[][] portConnections){
         this.id = id;
         this.portTypes = portTypes;
@@ -346,18 +373,31 @@ class Tile{
         this.lock = true;
     }
 
+    // GETTER METHODS
+
     public int getID(){
         return this.id;
+    }
+
+    public boolean getLock(){
+        return this.lock;
     }
 
     public int[] getPortTypes(){
         return this.portTypes;
     }
 
-    public int getPortType(int i ){
+    // get connections for a specific port i
+    public boolean[] getPortConnections(int i){
+        return this.portConnections[i];
+    }
+
+    // get portType for a specific port i
+    public int getPortType(int i){
         return this.portTypes[i];
     }
 
+    // set portType to value for a specific port i
     public void setPortType(int i, int value){
         if(lock) return;
         if( value < 0 || value >= 3 )
@@ -365,30 +405,26 @@ class Tile{
         this.portTypes[i] = value;
     }
 
-    public boolean[] getPortConnections(int i){
-        return this.portConnections[i];
+    // flip the lock state
+    public void flipLock(){
+        this.lock = !lock;
     }
 
-    public void flipPortConnection(int i, int portDirection){
+    // enable a connection between a port to another
+    public void flipPortConnection(int fromPort, int toPort){
         if( lock ) return;
-        if( i == portDirection )
+        if( fromPort == toPort )
             return;
-        this.portConnections[i][portDirection] = !this.portConnections[i][portDirection];
+        this.portConnections[fromPort][toPort] = !this.portConnections[fromPort][toPort];
     }
 
+    // returns a string of the lock state
      public String getLockString(){
         if(lock) return "locked";
         return "unlocked";
     }
 
-    public boolean getLock(){
-        return this.lock;
-    }
-
-    public void flipLock(){
-        this.lock = !lock;
-    }
-
+    // to string method
     public String toString(){
         String s = "\nID: " + this.id + " " + this.getLockString() + "\n";
         for(int i=0; i<4; i++){

@@ -19,10 +19,10 @@ public final int EAST  = 1;
 public final int SOUTH = 2;
 public final int WEST  = 3;
 public final String[] directionNames = {
-    "north",
-    "east",
-    "south",
-    "west"
+    "north ^",
+    "east >",
+    "south V",
+    "west <"
 };
 
 // SPRITES
@@ -85,6 +85,7 @@ void setup(){
         if( loadedIDs.size() >= 1 )
             if( i == loadedIDs.get(0) ){
                 loadedIDs.remove(0);
+                spriteIndex = i;
                 tiles.add(loadedTiles.get(i));
                 continue;
             }
@@ -179,7 +180,7 @@ void keyPressed(){
     }
 
     // Lock editing for current tile
-    if(key == 'p'){
+    if(keyCode == DOWN){
         tiles.get(spriteIndex).flipLock();
     }
 
