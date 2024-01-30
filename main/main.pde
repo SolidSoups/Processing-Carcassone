@@ -21,6 +21,8 @@ public final String[] DIRECTION_NAMES = {"North", "East", "South", "West"};
 
 public final int NULL  = 100;
 
+public final boolean DEBUG_MODE = false;
+
 void setup(){
     size(1500, 1000);
     println("---Program start.");

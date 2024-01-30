@@ -554,7 +554,7 @@
     "id": 15,
     "portTypes": [
       1,
-      1,
+      0,
       1,
       0
     ]
@@ -714,10 +714,10 @@
         true
       ],
       [
-        true,
-        true,
         false,
-        true
+        false,
+        false,
+        false
       ],
       [
         true,
@@ -730,7 +730,7 @@
     "portTypes": [
       0,
       0,
-      0,
+      1,
       0
     ]
   },

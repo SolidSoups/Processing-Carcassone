@@ -128,7 +128,15 @@ class GameController{
     void GenerateCorrectRotations(VectorInt _gridPosition){
         previewCorrectTileRotationsIndex = 0;
         previewCorrectTileRotations.clear();
+
         boolean[] correctRotations = IsConnectionPossible(_gridPosition, previewTileSpriteID);
+        
+        String printString = "[ " + correctRotations[0];
+        for(int i=1; i<4; i++){
+            printString += ", " + correctRotations[i];
+        }
+        println("Boolean rotations: " + printString + "]");
+
         for(int i=0; i<4; i++){
             if(correctRotations[i])
                 previewCorrectTileRotations.append(i);
@@ -181,6 +189,33 @@ class GameController{
         }
     }
 
+    public int[] RetrieveSurroundingFaces(VectorInt _gridPosition){
+        int[] facesList = new int[4];
+        for(int i=0; i<4; i++){
+            // check a certain position around _gridLocation
+            VectorInt checkPosition = new VectorInt(
+                _gridPosition.x + theFourHorsemen[i][0],
+                _gridPosition.y + theFourHorsemen[i][1]
+            );
+            // get the tile or null at that location
+            Tile checkTile = this.placedTilesArray[checkPosition.x][checkPosition.y];
+            
+            // set facetype depending on if there is a tile or not
+            int faceType;
+            if(checkTile == null)
+                faceType = EMPTY;
+            else{
+                int checkSpriteID =  checkTile.getSpriteID();
+                int[] dataTilePortList = tileDataList[checkSpriteID].getPortTypes();
+                int[] rotatedDataList = RotateList(dataTilePortList, checkTile.getRotation());
+                faceType = rotatedDataList[BoundDirection(i+2)];
+            }
+
+            // add that type to the facesList
+            facesList[i] = faceType;
+        }
+        return facesList;
+    }
 
 
 
@@ -281,58 +316,43 @@ class GameController{
     // can a connection be made between neighbouring tiles at a location?
     boolean[] IsConnectionPossible(VectorInt _gridPosition, int _spriteID){
         // get a list of connections at point
-        int[] connectionsList = new int[4];
-        for(int i=0; i<4; i++){
-            // check a certain position around _gridLocation
-            VectorInt checkPosition = new VectorInt(
-                _gridPosition.x + theFourHorsemen[i][0],
-                _gridPosition.y + theFourHorsemen[i][1]
-            );
-            // get the tile or null at that location
-            Tile checkTile = this.placedTilesArray[checkPosition.x][checkPosition.y];
-            
-            // set facetype depending on if there is a tile or not
-            int faceType;
-            if(checkTile == null)
-                faceType = EMPTY;
-            else{
-                int checkSpriteID =  checkTile.getSpriteID();
-                faceType = tileDataList[checkSpriteID].getPortType(BoundDirection(i+2));
-            }
-
-            // add that type to the connectionsList
-            connectionsList[i] = faceType;
-        }
+        int[] connectionsList = RetrieveSurroundingFaces(_gridPosition);
 
         // retrieve _spriteID connection list
         int[] tileConnections = tileDataList[_spriteID].getPortTypes();
-        
+
         // loop through and make a list 
         boolean[] answer = new boolean[4];
         for(int i=0; i<4; i++){
-            answer[i] = IsTypeListsMatchable(tileConnections, connectionsList, i);
+            int[] rotatedList = RotateList(tileConnections, i);
+            answer[i] = IsTypeListsMatchable(rotatedList, connectionsList);
         }
         return answer;
     }
 
-    private boolean IsTypeListsMatchable(int[] _tileTypeList, int[] _surrTypeList, int _rotation){
+    // rotates a list by a certain number of rotations
+    private int[] RotateList(int[] _list, int _rotation){
         // rotate list
-        int[] rotatedList1 = _tileTypeList;
+        int[] rotatedList = _list;
         for(int i=0; i<_rotation; i++){
             int[] newList = {
-                rotatedList1[3],
-                rotatedList1[0],
-                rotatedList1[1],
-                rotatedList1[2]
+                rotatedList[3],
+                rotatedList[0],
+                rotatedList[1],
+                rotatedList[2]
             };
-            rotatedList1 = newList;
+            rotatedList = newList;
         }
+        return rotatedList;
+    }
 
+    // assumes lists are already rotated
+    private boolean IsTypeListsMatchable(int[] _tileTypeList, int[] _surrTypeList){
         // check if lists don't match
         for(int i=0; i<4; i++){
             if(_surrTypeList[i] == EMPTY)
                 continue;
-            if(_surrTypeList[i] != rotatedList1[i])
+            if(_surrTypeList[i] != _tileTypeList[i])
                 return false;
         }
 
@@ -369,6 +389,12 @@ class GameController{
     }
     public int GetPreviewTileRotation(){
         return this.previewTileRotation;
+    }
+    public IntList GetPreviewTileCorrectTileRotations(){
+        return this.previewCorrectTileRotations;
+    }
+    public int GetPreviewTileCorrectTileRotationsIndex(){
+        return this.previewCorrectTileRotationsIndex;
     }
 
     public boolean isPreviewingPlacement(){

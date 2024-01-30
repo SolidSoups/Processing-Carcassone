@@ -40,6 +40,8 @@ public final String[] DIRECTION_NAMES = {"North", "East", "South", "West"};
 
 public final int NULL  = 100;
 
+public final boolean DEBUG_MODE = false;
+
  public void setup(){
     /* size commented out by preprocessor */;
     println("---Program start.");
@@ -215,7 +217,15 @@ class GameController{
      public void GenerateCorrectRotations(VectorInt _gridPosition){
         previewCorrectTileRotationsIndex = 0;
         previewCorrectTileRotations.clear();
+
         boolean[] correctRotations = IsConnectionPossible(_gridPosition, previewTileSpriteID);
+        
+        String printString = "[ " + correctRotations[0];
+        for(int i=1; i<4; i++){
+            printString += ", " + correctRotations[i];
+        }
+        println("Boolean rotations: " + printString + "]");
+
         for(int i=0; i<4; i++){
             if(correctRotations[i])
                 previewCorrectTileRotations.append(i);
@@ -268,6 +278,33 @@ class GameController{
         }
     }
 
+    public int[] RetrieveSurroundingFaces(VectorInt _gridPosition){
+        int[] facesList = new int[4];
+        for(int i=0; i<4; i++){
+            // check a certain position around _gridLocation
+            VectorInt checkPosition = new VectorInt(
+                _gridPosition.x + theFourHorsemen[i][0],
+                _gridPosition.y + theFourHorsemen[i][1]
+            );
+            // get the tile or null at that location
+            Tile checkTile = this.placedTilesArray[checkPosition.x][checkPosition.y];
+            
+            // set facetype depending on if there is a tile or not
+            int faceType;
+            if(checkTile == null)
+                faceType = EMPTY;
+            else{
+                int checkSpriteID =  checkTile.getSpriteID();
+                int[] dataTilePortList = tileDataList[checkSpriteID].getPortTypes();
+                int[] rotatedDataList = RotateList(dataTilePortList, checkTile.getRotation());
+                faceType = rotatedDataList[BoundDirection(i+2)];
+            }
+
+            // add that type to the facesList
+            facesList[i] = faceType;
+        }
+        return facesList;
+    }
 
 
 
@@ -368,58 +405,43 @@ class GameController{
     // can a connection be made between neighbouring tiles at a location?
      public boolean[] IsConnectionPossible(VectorInt _gridPosition, int _spriteID){
         // get a list of connections at point
-        int[] connectionsList = new int[4];
-        for(int i=0; i<4; i++){
-            // check a certain position around _gridLocation
-            VectorInt checkPosition = new VectorInt(
-                _gridPosition.x + theFourHorsemen[i][0],
-                _gridPosition.y + theFourHorsemen[i][1]
-            );
-            // get the tile or null at that location
-            Tile checkTile = this.placedTilesArray[checkPosition.x][checkPosition.y];
-            
-            // set facetype depending on if there is a tile or not
-            int faceType;
-            if(checkTile == null)
-                faceType = EMPTY;
-            else{
-                int checkSpriteID =  checkTile.getSpriteID();
-                faceType = tileDataList[checkSpriteID].getPortType(BoundDirection(i+2));
-            }
-
-            // add that type to the connectionsList
-            connectionsList[i] = faceType;
-        }
+        int[] connectionsList = RetrieveSurroundingFaces(_gridPosition);
 
         // retrieve _spriteID connection list
         int[] tileConnections = tileDataList[_spriteID].getPortTypes();
-        
+
         // loop through and make a list 
         boolean[] answer = new boolean[4];
         for(int i=0; i<4; i++){
-            answer[i] = IsTypeListsMatchable(tileConnections, connectionsList, i);
+            int[] rotatedList = RotateList(tileConnections, i);
+            answer[i] = IsTypeListsMatchable(rotatedList, connectionsList);
         }
         return answer;
     }
 
-    private boolean IsTypeListsMatchable(int[] _tileTypeList, int[] _surrTypeList, int _rotation){
+    // rotates a list by a certain number of rotations
+    private int[] RotateList(int[] _list, int _rotation){
         // rotate list
-        int[] rotatedList1 = _tileTypeList;
+        int[] rotatedList = _list;
         for(int i=0; i<_rotation; i++){
             int[] newList = {
-                rotatedList1[3],
-                rotatedList1[0],
-                rotatedList1[1],
-                rotatedList1[2]
+                rotatedList[3],
+                rotatedList[0],
+                rotatedList[1],
+                rotatedList[2]
             };
-            rotatedList1 = newList;
+            rotatedList = newList;
         }
+        return rotatedList;
+    }
 
+    // assumes lists are already rotated
+    private boolean IsTypeListsMatchable(int[] _tileTypeList, int[] _surrTypeList){
         // check if lists don't match
         for(int i=0; i<4; i++){
             if(_surrTypeList[i] == EMPTY)
                 continue;
-            if(_surrTypeList[i] != rotatedList1[i])
+            if(_surrTypeList[i] != _tileTypeList[i])
                 return false;
         }
 
@@ -456,6 +478,12 @@ class GameController{
     }
     public int GetPreviewTileRotation(){
         return this.previewTileRotation;
+    }
+    public IntList GetPreviewTileCorrectTileRotations(){
+        return this.previewCorrectTileRotations;
+    }
+    public int GetPreviewTileCorrectTileRotationsIndex(){
+        return this.previewCorrectTileRotationsIndex;
     }
 
     public boolean isPreviewingPlacement(){
@@ -525,6 +553,11 @@ class GraphicsHandler{
             sprite, 
             0, 0, 
             TILE_SIZE, TILE_SIZE );
+        if(DEBUG_MODE){
+            stroke(255,0,0);
+            strokeWeight(2);
+            line(0,0,0,-TILE_SIZE/2);
+        }
         popStyle();
         popMatrix();
     }
@@ -667,8 +700,77 @@ class UIHandler{
         
         drawNextTile();
 
-        if( gc.isPreviewingPlacement() )
+        if( gc.isPreviewingPlacement() ){
             drawConditionalButton();
+            if( DEBUG_MODE )
+                drawPreviewVariables();
+        }
+
+    }
+
+    private void drawPreviewVariables(){
+        int spriteID = gc.GetPreviewTileSpriteID();
+        VectorInt gridPosition = gc.GetPreviewTileGridPosition();
+        int tileRotation = gc.GetPreviewTileRotation();
+        int[] mainFaces = gc.getTileData(spriteID).getPortTypes();
+        int[] surroundingFaces = gc.RetrieveSurroundingFaces(gridPosition);
+        IntList correctTileRotations = gc.GetPreviewTileCorrectTileRotations();
+        int correctTileRotationsIndex = gc.GetPreviewTileCorrectTileRotationsIndex();
+        
+        
+        pushMatrix();
+        pushStyle();
+        textAlign(TOP, CENTER);
+
+        translate(20, 20);
+
+        fill(120);
+        stroke(255,0,0);
+        strokeWeight(2);
+        rect(0,0,460,225);
+
+        translate(20,20);
+
+        fill(255,0,0);
+        textSize(20);
+
+        text("Sprite ID: " + spriteID, 0, 0);
+        text("Grid position. " + gridPosition, 0, 25);
+        text("Tile Rotation: " + DIRECTION_NAMES[tileRotation], 0, 50);
+
+        String s = "null";
+        s = "[ " + TYPE_NAMES[mainFaces[0]];
+        for(int i=1; i<mainFaces.length; i++){
+            s += ", " + TYPE_NAMES[mainFaces[i]];
+        }
+        s += " ]";
+        text("Main faces: " + s, 0, 75);
+
+        s = "null";
+        s = "[ " + TYPE_NAMES[surroundingFaces[0]];
+        for(int i=1; i<surroundingFaces.length; i++){
+            s += ", " + TYPE_NAMES[surroundingFaces[i]];
+        }
+        s += " ]";
+        text("Surrounding faces: " + s, 0, 100);
+
+        s = "null";
+        if( correctTileRotations != null ){
+            s = "[ " + DIRECTION_NAMES[correctTileRotations.get(0)];
+            for(int i=1; i<correctTileRotations.size(); i++){
+                s += ", " + DIRECTION_NAMES[correctTileRotations.get(i)];
+            }
+            s += " ]";
+        }
+        text("Correct rotations: " + s, 0, 125);
+
+        text("Correct rotations index: " + correctTileRotationsIndex, 0, 150);
+
+
+
+
+        popStyle();
+        popMatrix();
     }
 
     private void drawHighlightedPlacement(VectorInt gridMousePosition){

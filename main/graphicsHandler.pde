@@ -57,6 +57,11 @@ class GraphicsHandler{
             sprite, 
             0, 0, 
             TILE_SIZE, TILE_SIZE );
+        if(DEBUG_MODE){
+            stroke(255,0,0);
+            strokeWeight(2);
+            line(0,0,0,-TILE_SIZE/2);
+        }
         popStyle();
         popMatrix();
     }

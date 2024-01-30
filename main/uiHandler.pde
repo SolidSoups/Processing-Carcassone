@@ -42,8 +42,77 @@ class UIHandler{
         
         drawNextTile();
 
-        if( gc.isPreviewingPlacement() )
+        if( gc.isPreviewingPlacement() ){
             drawConditionalButton();
+            if( DEBUG_MODE )
+                drawPreviewVariables();
+        }
+
+    }
+
+    private void drawPreviewVariables(){
+        int spriteID = gc.GetPreviewTileSpriteID();
+        VectorInt gridPosition = gc.GetPreviewTileGridPosition();
+        int tileRotation = gc.GetPreviewTileRotation();
+        int[] mainFaces = gc.getTileData(spriteID).getPortTypes();
+        int[] surroundingFaces = gc.RetrieveSurroundingFaces(gridPosition);
+        IntList correctTileRotations = gc.GetPreviewTileCorrectTileRotations();
+        int correctTileRotationsIndex = gc.GetPreviewTileCorrectTileRotationsIndex();
+        
+        
+        pushMatrix();
+        pushStyle();
+        textAlign(TOP, CENTER);
+
+        translate(20, 20);
+
+        fill(120);
+        stroke(255,0,0);
+        strokeWeight(2);
+        rect(0,0,460,225);
+
+        translate(20,20);
+
+        fill(255,0,0);
+        textSize(20);
+
+        text("Sprite ID: " + spriteID, 0, 0);
+        text("Grid position. " + gridPosition, 0, 25);
+        text("Tile Rotation: " + DIRECTION_NAMES[tileRotation], 0, 50);
+
+        String s = "null";
+        s = "[ " + TYPE_NAMES[mainFaces[0]];
+        for(int i=1; i<mainFaces.length; i++){
+            s += ", " + TYPE_NAMES[mainFaces[i]];
+        }
+        s += " ]";
+        text("Main faces: " + s, 0, 75);
+
+        s = "null";
+        s = "[ " + TYPE_NAMES[surroundingFaces[0]];
+        for(int i=1; i<surroundingFaces.length; i++){
+            s += ", " + TYPE_NAMES[surroundingFaces[i]];
+        }
+        s += " ]";
+        text("Surrounding faces: " + s, 0, 100);
+
+        s = "null";
+        if( correctTileRotations != null ){
+            s = "[ " + DIRECTION_NAMES[correctTileRotations.get(0)];
+            for(int i=1; i<correctTileRotations.size(); i++){
+                s += ", " + DIRECTION_NAMES[correctTileRotations.get(i)];
+            }
+            s += " ]";
+        }
+        text("Correct rotations: " + s, 0, 125);
+
+        text("Correct rotations index: " + correctTileRotationsIndex, 0, 150);
+
+
+
+
+        popStyle();
+        popMatrix();
     }
 
     private void drawHighlightedPlacement(VectorInt gridMousePosition){

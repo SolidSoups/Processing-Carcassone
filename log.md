@@ -83,3 +83,8 @@ Redid the entire readme.md file for the tile helper utility, as i thought it was
 
 ## E9: January 30, 9:07pm (2h)
 I have started implementation of a method that checks for all possible rotations in a given grid position that validly connect to other tiles. it is having some problems though where some locations arent generating the right rotations. 
+
+## E10: January 30, 11:16pm (30min)
+I figured out what i did wrong. Let me explain how the method works. 
+
+It recieves inputs of a grid location on the tile map. It then checks every neighbouring block, and if it exists, it figures out what face is facing the grid location. This is where i went wrong, i wasnt accounting for the rotation of the neighbouring tile as it can affect what port is facing the main location. I then collect all the ports facing the grid location and create a list from North to West of all those types of faces. Then i get a list of the next tiles ports, and i try to match those lists by periodically rotating the tile. The method returns a boolean list with a length of 4 depicting what rotation (which is the index) is allowed.
