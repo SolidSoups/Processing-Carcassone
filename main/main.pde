@@ -1,9 +1,37 @@
 GameController gc;
 
-final int TILE_SIZE = 100;
+// variables
+final float     targetMargin = 100;
+final int       boundsLength = 20;
+      int       TILE_SIZE;
+      VectorInt PLAY_AREA_SIZE;
+
+// directions
+public final int GRASS = 0;
+public final int ROAD  = 1;
+public final int CITY  = 2;
+public final int EMPTY = 3;
+public final String[] TYPE_NAMES = {"Grass", "Road", "City", "Empty"};
+
+public final int NORTH = 0;
+public final int EAST  = 1;
+public final int SOUTH = 2;
+public final int WEST  = 3;
+public final String[] DIRECTION_NAMES = {"North", "East", "South", "West"};
+
+public final int NULL  = 100;
 
 void setup(){
     size(1500, 1000);
+    println("---Program start.");
+
+    TILE_SIZE = int((width - targetMargin*2) / boundsLength);
+    PLAY_AREA_SIZE = new VectorInt(
+        boundsLength,
+        int((height - targetMargin*2) / TILE_SIZE)
+    );
+    println("TILE_SIZE: \t\t" + TILE_SIZE);
+    println("PLAY_AREA_SIZE: \t" + PLAY_AREA_SIZE);
 
     gc = new GameController();
 }
@@ -11,16 +39,30 @@ void setup(){
 void draw(){
     background(0);
 
-    gc.update();
-    gc.render();
+    gc.Update();
+    gc.Render();
 }
 
 
 void mousePressed(){
     if(mouseButton == LEFT){
-        gc.leftMousePressed();
+        gc.LeftMousePressed();
     }
     if( mouseButton == RIGHT){
-        gc.rightMousePressed();
+        gc.RightMousePressed();
     }
+}
+
+// bound a direction between 0, 1, 2, 3
+int BoundDirection(int direction){
+    int x = direction;
+    if( x < 0 ){
+        x += 4;
+        x = BoundDirection(x);
+    }
+    else if( x > 3){
+        x -= 4;
+        x = BoundDirection(x);
+    }
+    return x;
 }

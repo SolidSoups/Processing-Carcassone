@@ -1,122 +1,183 @@
+import java.security.*;
+
 class GameController{
-    ArrayList<Tile> placedTiles;
+    Tile[][] placedTilesArray;
+    TileData[] tileDataList;
 
     // handlers
-    GraphicsHandler gh;
-    UIHandler uih;
+    GraphicsHandler graphicsHandler;
+    UIHandler uiHandler;
 
     // sprites
     PImage[] sprites;
     int spriteSize = 24;
-    int iSprite;
-
-    // mouse position snapped to a grid
-    private VectorInt snappedMousePos;
 
     // input
     private boolean isPreviewingPlacement = false;
     private boolean hasConfirmedPlacement = false;
     private Tile previewTile;
 
+    // preview tile properties
+    private int         previewTileSpriteID;
+    private VectorInt   previewTileGridPosition;
+    private int         previewTileRotation;
+    private IntList     previewCorrectTileRotations = new IntList();
+    private int         previewCorrectTileRotationsIndex = 0;
+
+    // finals
+    final int[][] theFourHorsemen = {{0,-1}, {1,0}, {0,1}, {-1,0}};
 
 
-    // constructor
+
+
+
+
+    // CONSTRUCTOR
     public GameController(){
-        placedTiles = new ArrayList<Tile>();
+        // load all sprites and their data files
         sprites = new PImage[spriteSize];
+        tileDataList = new TileData[spriteSize];
+        tileDataList = this.LoadTilesFromJSON();
+
+        // create array for placed tiles
+        placedTilesArray = new Tile[PLAY_AREA_SIZE.x][PLAY_AREA_SIZE.y];
 
         // init handlers
-        gh = new GraphicsHandler(this);
-        uih = new UIHandler(this);
-        
-        // initialize all spries
+        graphicsHandler = new GraphicsHandler(this);
+        uiHandler = new UIHandler(this);
+
+        // init all sprites
         for(int i = 0; i < spriteSize; i++){
             String s = str(i);
             while( s.length() < 2)
                 s = "0" + s;
-            sprites[i] = loadImage("resources/sprites/sprite_" + s + ".png"); // idk why these images are in png lol
+            sprites[i] = loadImage("resources/sprites/sprite_" + s + ".png");
         }
-        selectNewRandomSprite();
+        this.SelectNewRandomSprite();
 
-        //add middle tile
-        Vector middlePos = new Vector(width/2, height/2);
-        VectorInt middleGridPos = middlePos.returnGridPosition();
-        Tile starterTile = new Tile(middleGridPos, sprites[14]);
-        placedTiles.add(starterTile);
+        // add starter tile
+        Tile starterTile = new Tile(new VectorInt(6,6), 14);
+        placedTilesArray[6][6] = starterTile;
     }
 
 
 
 
 
-    // main methods
 
-    void update(){
-        Vector mousePosition = new Vector(mouseX, mouseY);
-        snappedMousePos = mousePosition.snapToGrid();
 
+
+
+    // MAIN METHODS
+
+    void Update(){
+        // place a tile if we have confirmed our placed
         if(this.isPreviewingPlacement && this.hasConfirmedPlacement){
-            placeTile();
-            clearPlacementFlags();
-            selectNewRandomSprite();
+            PlaceTile();
+            ClearPlacementFlags();
+            SelectNewRandomSprite();
         }
     }
 
-    public void render(){
-        gh.render();
-        uih.render();
+    public void Render(){
+        graphicsHandler.Render();
+        uiHandler.Render();
     }
 
 
 
 
 
-    // Functionality
+    // FUNCTIONALITY
 
-    void selectNewRandomSprite(){
-        iSprite = int(random(0, spriteSize));
+    // changes the next sprite to a random sprite
+    void SelectNewRandomSprite(){
+        previewTileSpriteID = int(random(0, spriteSize));
     }
 
-    void placeTile(){
-        Tile newTile = new Tile(previewTile.getGridPosition(), sprites[iSprite], previewTile.getRotation());
-        this.placedTiles.add(newTile);
+    // places a tile at the current preview position
+    void PlaceTile(){
+        println(previewTileGridPosition); 
+        Tile newTile = new Tile(previewTileGridPosition, previewTileSpriteID, previewTileRotation);
+        this.placedTilesArray[previewTileGridPosition.x][previewTileGridPosition.y] = newTile;
     }
 
-    void clearPlacementFlags(){
-        previewTile = null;
+    // clear preview and confirm placement flags
+    void ClearPlacementFlags(){
         this.hasConfirmedPlacement = false;
         this.isPreviewingPlacement = false;
+        previewCorrectTileRotations.clear();
+    }
+
+    // HELLO ROZA   ! ! ! ! ! ! <3
+    //
+    //     |\__/,|   (`\
+    //   _.|o o  |_   ) )
+    // -(((---(((--------
+    //
+    
+    // returns the cell position of where the mouse is hovering
+    VectorInt MouseToGridPosition(){
+        PVector offsetMousePos = new PVector(mouseX-targetMargin, mouseY-targetMargin);
+        if( offsetMousePos.x < 0 || offsetMousePos.y < 0 || offsetMousePos.x >= (PLAY_AREA_SIZE.x*TILE_SIZE) || offsetMousePos.y >= (PLAY_AREA_SIZE.y*TILE_SIZE) )
+            return null;
+        
+        return new VectorInt( int(offsetMousePos.x / TILE_SIZE), int(offsetMousePos.y / TILE_SIZE) );
+    }
+
+    void GenerateCorrectRotations(VectorInt _gridPosition){
+        previewCorrectTileRotationsIndex = 0;
+        previewCorrectTileRotations.clear();
+        boolean[] correctRotations = IsConnectionPossible(_gridPosition, previewTileSpriteID);
+        for(int i=0; i<4; i++){
+            if(correctRotations[i])
+                previewCorrectTileRotations.append(i);
+        }
+        previewTileRotation = previewCorrectTileRotations.get(0);
     }
 
 
 
-    // input
 
-    public void leftMousePressed(){
-        if( uih.isInsideUI() ){
-            int buttonPressed = uih.leftMousePressed();
-            if( buttonPressed == uih.CANCEL){
-                clearPlacementFlags();
+    // INPUT CONTROL
+
+    public void LeftMousePressed(){
+        // check for UI click
+        if( uiHandler.isInsideUI() ){
+            int buttonPressed = uiHandler.LeftMousePressed();
+            if( buttonPressed == uiHandler.CANCEL){
+                ClearPlacementFlags();
             }
-            else if( buttonPressed == uih.CONFIRM){
+            else if( buttonPressed == uiHandler.CONFIRM){
                 this.hasConfirmedPlacement = true;
             }
             return;
         }
 
-        VectorInt previewLocation = this.snappedMousePos.returnGridPosition();
-
-        if( !validTilePlacement(previewLocation) )
+        // are we within bounds
+        if( !MouseWithinBounds() )
             return;
 
-        previewTile = new Tile(previewLocation, sprites[iSprite]);
-        previewTile.addHighlight();
+        // else create tile click
+        VectorInt mouseGridPos = MouseToGridPosition();
+        if( mouseGridPos == null ) return;
+
+        if( !ValidTilePlacement(mouseGridPos) )
+            return;
+        
+        // generate correct rotations
+        GenerateCorrectRotations(mouseGridPos);
+
+        previewTileGridPosition = mouseGridPos;
         this.isPreviewingPlacement = true;
     }
 
-    public void rightMousePressed(){
+    public void RightMousePressed(){
         if( isPreviewingPlacement ){
-            previewTile.rotateTile();
+            previewCorrectTileRotationsIndex++;
+            if(previewCorrectTileRotationsIndex > (previewCorrectTileRotations.size()-1))
+                previewCorrectTileRotationsIndex = 0;
+            previewTileRotation = previewCorrectTileRotations.get(previewCorrectTileRotationsIndex);
         }
     }
 
@@ -124,61 +185,197 @@ class GameController{
 
 
 
-    // boolean methods
 
-    public boolean validTilePlacement(VectorInt gridPosition){
-        // validity
-        if( !hasNeighbours(gridPosition) ){
-            return false;
-        }
-        for(Tile refTile : this.placedTiles){
-            VectorInt refTile_position = refTile.getGridPosition();
-            if( refTile_position.x == gridPosition.x && refTile_position.y == gridPosition.y ){
-                return false;
+
+
+    // JSON METHODS
+
+    TileData[] LoadTilesFromJSON(){
+        String filename = "tileConnections.json";
+        JSONArray tilePieces = loadJSONArray(filename);
+        TileData[] loadedTiles = new TileData[tilePieces.size()];
+
+        // loop through available loaded Tile objects
+        for (int i=0; i < tilePieces.size(); i++){
+            // variables for each tile object
+            int tileID;
+            int[] portTypes = new int[4];
+            boolean[][] portConnections = new boolean[4][4];
+            
+            // load tile object at index
+            JSONObject tile = tilePieces.getJSONObject(i);
+
+            // retrieve tile id
+            tileID = tile.getInt("id");
+
+            // retrieve tile portTypes
+            JSONArray portTypesArray   = tile.getJSONArray("portTypes");
+            portTypes = portTypesArray.toIntArray();
+
+            // retrieve boolean portsConnections
+            JSONArray portsConnectionsX = tile.getJSONArray("portConnections");
+            for(int x=0; x<4; x++){
+                JSONArray portsConnectionsY = portsConnectionsX.getJSONArray(x);
+                for(int y=0; y<4; y++){
+                    portConnections[x][y] = portsConnectionsY.getBoolean(y);
+                }
             }
+
+            // add a tile with this information
+            TileData newTileData = new TileData(tileID, portTypes, portConnections);
+            loadedTiles[i] = newTileData;
         }
+
+        println("\nLoaded " + loadedTiles.length + " tiles from JSON file!");
+        return loadedTiles;
+    }
+
+
+
+
+
+    // BOOLEAN METHODS
+
+    // is a location valid for a placement?
+    public boolean ValidTilePlacement(VectorInt gridPosition){
+        if( this.placedTilesArray[gridPosition.x][gridPosition.y] != null )
+            return false;
+        if( !HasNeighbours(gridPosition) )
+            return false;
+
+        boolean[] gridPositionCorrectRotations = IsConnectionPossible(gridPosition, previewTileSpriteID);
+        boolean noRotations = false;
+        for(int i=0; i<4; i++)
+            noRotations = noRotations || gridPositionCorrectRotations[i];
+        if(!noRotations)
+            return false;
 
         return true;
     }
 
-    boolean hasNeighbours(VectorInt gridPosition){
-        int[][] theFourHorsemen = {{-1,0}, {0,-1}, {1,0}, {0,1}};
-        for(Tile t : placedTiles){
-            VectorInt tPos = t.getGridPosition();
-            for(int i = 0; i < 4; i++){
-                int dX = (gridPosition.x + theFourHorsemen[i][0]);
-                int dY = (gridPosition.y + theFourHorsemen[i][1]);
-                if( tPos.x == dX && tPos.y == dY)
-                    return true;
-            }
+    // does a location have neighbours?
+    boolean HasNeighbours(VectorInt gridPosition){
+        for(int i = 0; i < 4; i++){
+            VectorInt checkLocation = new VectorInt(
+                gridPosition.x + theFourHorsemen[i][0],
+                gridPosition.y + theFourHorsemen[i][1]
+            );
+            if( checkLocation.x < 0 || checkLocation.x >= PLAY_AREA_SIZE.x ||
+            checkLocation.y < 0 || checkLocation.y >= PLAY_AREA_SIZE.y )
+                continue;
+            if(this.placedTilesArray[checkLocation.x][checkLocation.y] != null)
+                return true;
         }
-
         return false;
     }
 
-
-
-
-
-    // getters
-
-    public ArrayList<Tile> getPlacedTiles(){
-        return this.placedTiles;
+    // is the mouse within playarea bounds?
+    boolean MouseWithinBounds(){
+        if( mouseX <= targetMargin || mouseY <= targetMargin ||
+        mouseX >= (targetMargin + PLAY_AREA_SIZE.x*TILE_SIZE) ||
+        mouseY >= (targetMargin + PLAY_AREA_SIZE.y*TILE_SIZE))
+            return false;
+        return true;
     }
 
-    public Tile getPreviewTile(){
-        return this.previewTile;
+    // can a connection be made between neighbouring tiles at a location?
+    boolean[] IsConnectionPossible(VectorInt _gridPosition, int _spriteID){
+        // get a list of connections at point
+        int[] connectionsList = new int[4];
+        for(int i=0; i<4; i++){
+            // check a certain position around _gridLocation
+            VectorInt checkPosition = new VectorInt(
+                _gridPosition.x + theFourHorsemen[i][0],
+                _gridPosition.y + theFourHorsemen[i][1]
+            );
+            // get the tile or null at that location
+            Tile checkTile = this.placedTilesArray[checkPosition.x][checkPosition.y];
+            
+            // set facetype depending on if there is a tile or not
+            int faceType;
+            if(checkTile == null)
+                faceType = EMPTY;
+            else{
+                int checkSpriteID =  checkTile.getSpriteID();
+                faceType = tileDataList[checkSpriteID].getPortType(BoundDirection(i+2));
+            }
+
+            // add that type to the connectionsList
+            connectionsList[i] = faceType;
+        }
+
+        // retrieve _spriteID connection list
+        int[] tileConnections = tileDataList[_spriteID].getPortTypes();
+        
+        // loop through and make a list 
+        boolean[] answer = new boolean[4];
+        for(int i=0; i<4; i++){
+            answer[i] = IsTypeListsMatchable(tileConnections, connectionsList, i);
+        }
+        return answer;
+    }
+
+    private boolean IsTypeListsMatchable(int[] _tileTypeList, int[] _surrTypeList, int _rotation){
+        // rotate list
+        int[] rotatedList1 = _tileTypeList;
+        for(int i=0; i<_rotation; i++){
+            int[] newList = {
+                rotatedList1[3],
+                rotatedList1[0],
+                rotatedList1[1],
+                rotatedList1[2]
+            };
+            rotatedList1 = newList;
+        }
+
+        // check if lists don't match
+        for(int i=0; i<4; i++){
+            if(_surrTypeList[i] == EMPTY)
+                continue;
+            if(_surrTypeList[i] != rotatedList1[i])
+                return false;
+        }
+
+        // return true if otherwise
+        return true;
+    }
+
+
+
+
+
+    // GET METHODS
+
+    public PImage getTileSprite(int spriteID){
+        return this.sprites[spriteID];
+    }
+    public TileData getTileData(int tileID){
+        for(TileData td : tileDataList){
+            if( td.getSpriteID() == tileID )
+                return td;
+        }
+        return null;
+    }
+
+    public Tile[][] GetPlacedTilesArray(){
+        return this.placedTilesArray;
+    }
+
+    public int GetPreviewTileSpriteID(){
+        return this.previewTileSpriteID;
+    }
+    public VectorInt GetPreviewTileGridPosition(){
+        return this.previewTileGridPosition;
+    }
+    public int GetPreviewTileRotation(){
+        return this.previewTileRotation;
     }
 
     public boolean isPreviewingPlacement(){
         return this.isPreviewingPlacement;
     }
 
-    public VectorInt getSnappedMousePos(){
-        return this.snappedMousePos;
-    }
-
     public PImage getNextSprite(){
-        return this.sprites[iSprite];
+        return this.sprites[previewTileSpriteID];
     }
 }

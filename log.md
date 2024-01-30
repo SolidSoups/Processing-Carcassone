@@ -80,3 +80,6 @@ I found it surprisingly easy to save data as a JSON file and will continue to us
 
 ## E8: January 26, 6:00pm (3h 10min)
 Redid the entire readme.md file for the tile helper utility, as i thought it was quite messy. 
+
+## E9: January 30, 9:07pm (2h)
+I have started implementation of a method that checks for all possible rotations in a given grid position that validly connect to other tiles. it is having some problems though where some locations arent generating the right rotations. 

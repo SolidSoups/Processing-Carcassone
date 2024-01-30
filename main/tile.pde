@@ -1,71 +1,31 @@
 class Tile{
-    VectorInt gridPosition;
-    color c;
-    PImage sprite;
+    int         rotation = 0;
 
-    // directions
-    public final int NORTH = 0;
-    public final int EAST  = 1;
-    public final int SOUTH = 2;
-    public final int WEST  = 3;
-    int rotation = 0;
+    VectorInt   gridPosition;
+    int         tileID;
 
-    // connections
-    TileConnections tc;
-
-    //tint
-    boolean addHighlight = false;
-
-    public Tile(VectorInt gridPosition, PImage sprite){
+    // main constructor
+    public Tile(VectorInt gridPosition, int tileID){
         this.gridPosition = gridPosition;
-        this.sprite = sprite;
-        this.rotation = this.NORTH;
-
-        tc = new TileConnections(this);
+        this.tileID = tileID;
+        this.rotation = NORTH;
     }
 
-    public Tile(VectorInt gridPosition, PImage sprite, int rotation){
+    // place tile constructor
+    public Tile(VectorInt gridPosition, int tileID, int rotation){
         this.gridPosition = gridPosition;
-        this.sprite = sprite;
+        this.tileID = tileID;
         this.rotation = rotation;
     }
 
-
-
-    public void draw(){
-        VectorInt drawPosition = gridPosition.scaleToGrid();
-        
-        pushMatrix();
-        translate(drawPosition.x + TILE_SIZE/2, drawPosition.y + TILE_SIZE/2);
-        pushStyle();
-        imageMode(CENTER);
-
-        // change direction if needed
-        rotate(rotation * HALF_PI);
-
-        if( this.addHighlight )
-            tint(170, 170, 170, 150);
-        image(sprite, 0, 0, TILE_SIZE, TILE_SIZE);
-        popStyle();
-        popMatrix();
+    // getters
+    public int getSpriteID(){
+        return this.tileID;
     }
-
     public VectorInt getGridPosition(){
         return this.gridPosition;
     }
-
     public int getRotation(){
         return this.rotation;
-    }
-
-    public void rotateTile(){
-        if( rotation < 3 )
-            rotation += 1;
-        else
-            rotation = 0;
-    }
-
-    public void addHighlight(){
-        this.addHighlight = true;
     }
 }

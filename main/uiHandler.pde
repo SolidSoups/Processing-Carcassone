@@ -34,11 +34,11 @@ class UIHandler{
     }
 
 
-    public void render(){
-        VectorInt snappedMousePos = gc.getSnappedMousePos();
+    public void Render(){
+        VectorInt gridMousePosition = gc.MouseToGridPosition();
 
-        if( gc.validTilePlacement(snappedMousePos.returnGridPosition() ) )
-            drawHighlightedPlacement(snappedMousePos);
+        if( gridMousePosition != null && gc.ValidTilePlacement(gridMousePosition) )
+            drawHighlightedPlacement(gridMousePosition);
         
         drawNextTile();
 
@@ -46,15 +46,15 @@ class UIHandler{
             drawConditionalButton();
     }
 
-    private void drawHighlightedPlacement(VectorInt drawLoc){
+    private void drawHighlightedPlacement(VectorInt gridMousePosition){
         pushMatrix();
         pushStyle();
         
-        translate(drawLoc.x, drawLoc.y);
+        translate(targetMargin, targetMargin);
         rectMode(CORNER);
         noStroke();
         fill(255, 120);
-        rect(0, 0, TILE_SIZE, TILE_SIZE);
+        rect(gridMousePosition.x*TILE_SIZE, gridMousePosition.y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
         
         popStyle();
         popMatrix();
@@ -142,7 +142,7 @@ class UIHandler{
         return false;
     }
 
-    public int leftMousePressed(){
+    public int LeftMousePressed(){
         this.leftMousePressed = true;
         if( isInsideButton(this.CANCEL) )
             return this.CANCEL;

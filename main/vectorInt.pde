@@ -17,11 +17,12 @@ class VectorInt{
         int y = int(this.y * TILE_SIZE);
         return new VectorInt(x, y);
     }
-
-    @Override
-    public String toString(){
-        return "(" + this.x + ", " + this.y + ")";
+    
+    public VectorInt asNew(){
+        return new VectorInt(this.x, this.y);
     }
+
+    // OPERATIONS
 
     public VectorInt mult(int d){
         this.x = this.x * d;
@@ -46,9 +47,9 @@ class VectorInt{
         this.y = int(this.y / d);
         return this;
     }
-
-
-    public VectorInt asNew(){
-        return new VectorInt(this.x, this.y);
+    
+    @Override
+    public String toString(){
+        return "(" + this.x + ", " + this.y + ")";
     }
 }
