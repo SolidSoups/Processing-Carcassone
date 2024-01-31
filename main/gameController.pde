@@ -21,13 +21,14 @@ class GameController{
     private int         previewTileSpriteID;
     private VectorInt   previewTileGridPosition;
     private int         previewTileRotation;
-    private IntList     previewCorrectTileRotations = new IntList();
-    private int         previewCorrectTileRotationsIndex = 0;
+    private IntList     previewCorrectTileRotations         = new IntList();
+    private int         previewCorrectTileRotationsIndex    = 0;
 
     // finals
     final int[][] theFourHorsemen = {{0,-1}, {1,0}, {0,1}, {-1,0}};
 
-
+    ArrayList<VectorInt>    possiblePlacements             = new ArrayList<VectorInt>();
+    IntList                 possiblePlacementsRotations    = new IntList();
 
 
 
@@ -53,11 +54,13 @@ class GameController{
                 s = "0" + s;
             sprites[i] = loadImage("resources/sprites/sprite_" + s + ".png");
         }
-        this.SelectNewRandomSprite();
 
         // add starter tile
         Tile starterTile = new Tile(new VectorInt(6,6), 14);
         placedTilesArray[6][6] = starterTile;
+
+        
+        this.SelectNewRandomSprite();
     }
 
 
@@ -92,12 +95,15 @@ class GameController{
 
     // changes the next sprite to a random sprite
     void SelectNewRandomSprite(){
+        println("Selecting new random sprite!");
         previewTileSpriteID = int(random(0, spriteSize));
+        if(!IsPlacementPossible()){
+            SelectNewRandomSprite();
+        }
     }
 
     // places a tile at the current preview position
     void PlaceTile(){
-        println(previewTileGridPosition); 
         Tile newTile = new Tile(previewTileGridPosition, previewTileSpriteID, previewTileRotation);
         this.placedTilesArray[previewTileGridPosition.x][previewTileGridPosition.y] = newTile;
     }
@@ -107,6 +113,7 @@ class GameController{
         this.hasConfirmedPlacement = false;
         this.isPreviewingPlacement = false;
         previewCorrectTileRotations.clear();
+        previewCorrectTileRotationsIndex = 0;
     }
 
     // HELLO ROZA   ! ! ! ! ! ! <3
@@ -130,12 +137,6 @@ class GameController{
         previewCorrectTileRotations.clear();
 
         boolean[] correctRotations = IsConnectionPossible(_gridPosition, previewTileSpriteID);
-        
-        String printString = "[ " + correctRotations[0];
-        for(int i=1; i<4; i++){
-            printString += ", " + correctRotations[i];
-        }
-        println("Boolean rotations: " + printString + "]");
 
         for(int i=0; i<4; i++){
             if(correctRotations[i])
@@ -162,15 +163,13 @@ class GameController{
             return;
         }
 
-        // are we within bounds
-        if( !MouseWithinBounds() )
+        if( !MouseWithinPlayarea() )
             return;
 
-        // else create tile click
         VectorInt mouseGridPos = MouseToGridPosition();
         if( mouseGridPos == null ) return;
 
-        if( !ValidTilePlacement(mouseGridPos) )
+        if( !IsValidTilePlacement(mouseGridPos) )
             return;
         
         // generate correct rotations
@@ -189,7 +188,7 @@ class GameController{
         }
     }
 
-    public int[] RetrieveSurroundingFaces(VectorInt _gridPosition){
+    public int[] RetrieveSurroundingFaceTypes(VectorInt _gridPosition){
         int[] facesList = new int[4];
         for(int i=0; i<4; i++){
             // check a certain position around _gridLocation
@@ -198,6 +197,9 @@ class GameController{
                 _gridPosition.y + theFourHorsemen[i][1]
             );
             // get the tile or null at that location
+            if( checkPosition.x < 0 || checkPosition.x >= PLAY_AREA_SIZE.x ||
+            checkPosition.y < 0 || checkPosition.y >= PLAY_AREA_SIZE.y )
+                continue;
             Tile checkTile = this.placedTilesArray[checkPosition.x][checkPosition.y];
             
             // set facetype depending on if there is a tile or not
@@ -217,6 +219,21 @@ class GameController{
         return facesList;
     }
 
+    // Rotates a given list a certain amount of times given by rotation count
+    private int[] RotateList(int[] _list, int _rotateCount){
+        // rotate list
+        int[] rotatedList = _list;
+        for(int i=0; i<_rotateCount; i++){
+            int[] newList = {
+                rotatedList[3],
+                rotatedList[0],
+                rotatedList[1],
+                rotatedList[2]
+            };
+            rotatedList = newList;
+        }
+        return rotatedList;
+    }
 
 
 
@@ -272,28 +289,29 @@ class GameController{
     // BOOLEAN METHODS
 
     // is a location valid for a placement?
-    public boolean ValidTilePlacement(VectorInt gridPosition){
-        if( this.placedTilesArray[gridPosition.x][gridPosition.y] != null )
+    public boolean IsValidTilePlacement(VectorInt _gridPosition){
+        if( this.placedTilesArray[_gridPosition.x][_gridPosition.y] != null )
             return false;
-        if( !HasNeighbours(gridPosition) )
+        if( !HasNeighbours(_gridPosition) )
             return false;
 
-        boolean[] gridPositionCorrectRotations = IsConnectionPossible(gridPosition, previewTileSpriteID);
+        // we check if our tile can even be here
+        boolean[] _gridPositionCorrectRotations = IsConnectionPossible(_gridPosition, previewTileSpriteID);
         boolean noRotations = false;
         for(int i=0; i<4; i++)
-            noRotations = noRotations || gridPositionCorrectRotations[i];
+            noRotations = noRotations || _gridPositionCorrectRotations[i];
         if(!noRotations)
             return false;
 
         return true;
     }
 
-    // does a location have neighbours?
-    boolean HasNeighbours(VectorInt gridPosition){
+    // Returns true if at least one direct neighbour next to a given grid position
+    boolean HasNeighbours(VectorInt _gridPosition){
         for(int i = 0; i < 4; i++){
             VectorInt checkLocation = new VectorInt(
-                gridPosition.x + theFourHorsemen[i][0],
-                gridPosition.y + theFourHorsemen[i][1]
+                _gridPosition.x + theFourHorsemen[i][0],
+                _gridPosition.y + theFourHorsemen[i][1]
             );
             if( checkLocation.x < 0 || checkLocation.x >= PLAY_AREA_SIZE.x ||
             checkLocation.y < 0 || checkLocation.y >= PLAY_AREA_SIZE.y )
@@ -304,8 +322,8 @@ class GameController{
         return false;
     }
 
-    // is the mouse within playarea bounds?
-    boolean MouseWithinBounds(){
+    // Returns true if the mouse is within the play area
+    boolean MouseWithinPlayarea(){
         if( mouseX <= targetMargin || mouseY <= targetMargin ||
         mouseX >= (targetMargin + PLAY_AREA_SIZE.x*TILE_SIZE) ||
         mouseY >= (targetMargin + PLAY_AREA_SIZE.y*TILE_SIZE))
@@ -313,15 +331,15 @@ class GameController{
         return true;
     }
 
-    // can a connection be made between neighbouring tiles at a location?
+    // Returns a boolean list of possible rotations where the index is the rotation at a given grid location with a given tile
     boolean[] IsConnectionPossible(VectorInt _gridPosition, int _spriteID){
         // get a list of connections at point
-        int[] connectionsList = RetrieveSurroundingFaces(_gridPosition);
+        int[] connectionsList = RetrieveSurroundingFaceTypes(_gridPosition);
 
         // retrieve _spriteID connection list
         int[] tileConnections = tileDataList[_spriteID].getPortTypes();
 
-        // loop through and make a list 
+        // Rotates the tile and adds a boolean item determining if the lists match at that certain rotation
         boolean[] answer = new boolean[4];
         for(int i=0; i<4; i++){
             int[] rotatedList = RotateList(tileConnections, i);
@@ -330,37 +348,40 @@ class GameController{
         return answer;
     }
 
-    // rotates a list by a certain number of rotations
-    private int[] RotateList(int[] _list, int _rotation){
-        // rotate list
-        int[] rotatedList = _list;
-        for(int i=0; i<_rotation; i++){
-            int[] newList = {
-                rotatedList[3],
-                rotatedList[0],
-                rotatedList[1],
-                rotatedList[2]
-            };
-            rotatedList = newList;
-        }
-        return rotatedList;
-    }
-
-    // assumes lists are already rotated
+    // Checks if two face type lists can match
     private boolean IsTypeListsMatchable(int[] _tileTypeList, int[] _surrTypeList){
-        // check if lists don't match
         for(int i=0; i<4; i++){
             if(_surrTypeList[i] == EMPTY)
                 continue;
             if(_surrTypeList[i] != _tileTypeList[i])
                 return false;
         }
-
-        // return true if otherwise
         return true;
     }
 
+    public boolean IsPlacementPossible(){
+        possiblePlacements.clear();
+        possiblePlacementsRotations.clear();
+        for(int x=0; x<PLAY_AREA_SIZE.x; x++){
+            for(int y=0; y<PLAY_AREA_SIZE.y; y++){
+                VectorInt pos = new VectorInt(x, y);
+                if(IsValidTilePlacement(pos))
+                    possiblePlacements.add(pos);
+                else
+                    continue;
+                boolean[] rotations = IsConnectionPossible(pos, previewTileSpriteID);
+                int count = 0;
+                for(int i=0; i<4; i++){
+                    if(rotations[i]) count++;
+                }
+                possiblePlacementsRotations.append(count);
+            }
+        }
 
+        if(possiblePlacements.size() != 0)
+            return true;
+        return false;
+    }
 
 
 
@@ -403,5 +424,13 @@ class GameController{
 
     public PImage getNextSprite(){
         return this.sprites[previewTileSpriteID];
+    }
+
+    public ArrayList<VectorInt> GetPossiblePlacements(){
+        return this.possiblePlacements;
+    }
+
+    public IntList GetPossiblePlacementsRotations(){
+        return this.possiblePlacementsRotations;
     }
 }

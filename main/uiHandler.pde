@@ -37,7 +37,7 @@ class UIHandler{
     public void Render(){
         VectorInt gridMousePosition = gc.MouseToGridPosition();
 
-        if( gridMousePosition != null && gc.ValidTilePlacement(gridMousePosition) )
+        if( gridMousePosition != null && gc.IsValidTilePlacement(gridMousePosition) )
             drawHighlightedPlacement(gridMousePosition);
         
         drawNextTile();
@@ -55,7 +55,7 @@ class UIHandler{
         VectorInt gridPosition = gc.GetPreviewTileGridPosition();
         int tileRotation = gc.GetPreviewTileRotation();
         int[] mainFaces = gc.getTileData(spriteID).getPortTypes();
-        int[] surroundingFaces = gc.RetrieveSurroundingFaces(gridPosition);
+        int[] surroundingFaces = gc.RetrieveSurroundingFaceTypes(gridPosition);
         IntList correctTileRotations = gc.GetPreviewTileCorrectTileRotations();
         int correctTileRotationsIndex = gc.GetPreviewTileCorrectTileRotationsIndex();
         
@@ -66,10 +66,10 @@ class UIHandler{
 
         translate(20, 20);
 
-        fill(120);
+        fill(120,120,120,120);
         stroke(255,0,0);
         strokeWeight(2);
-        rect(0,0,460,225);
+        rect(0,0,440,215);
 
         translate(20,20);
 

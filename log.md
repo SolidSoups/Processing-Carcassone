@@ -88,3 +88,14 @@ I have started implementation of a method that checks for all possible rotations
 I figured out what i did wrong. Let me explain how the method works. 
 
 It recieves inputs of a grid location on the tile map. It then checks every neighbouring block, and if it exists, it figures out what face is facing the grid location. This is where i went wrong, i wasnt accounting for the rotation of the neighbouring tile as it can affect what port is facing the main location. I then collect all the ports facing the grid location and create a list from North to West of all those types of faces. Then i get a list of the next tiles ports, and i try to match those lists by periodically rotating the tile. The method returns a boolean list with a length of 4 depicting what rotation (which is the index) is allowed.
+
+
+## E11: January 31, 11:12am (1h)
+The tiles now finally are only allowed to be placed at a given position IF: 
+* there is no other tile there
+* it is right next to a tile
+* the tile and neighbouring tile can make any connections
+
+I have made some improvements to the debug mode. The UI will now show every location where a placement is possible, and how many placements are possible at that location. 
+
+**Next i am planning to restructure, recycle and clean my code**

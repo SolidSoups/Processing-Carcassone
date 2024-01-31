@@ -7,12 +7,15 @@ class GraphicsHandler{
     }
 
     public void Render(){
-        RenderGridBounds();
+        if(DEBUG_MODE){
+            RenderGridBounds();
+            RenderPossiblePlacements();
+        } 
         RenderTiles();
         if(gc.isPreviewingPlacement())
             RenderPreviewTile();
         
-        RenderMouseGridLocation();
+        if(DEBUG_MODE) RenderMouseGridLocation();
     }
 
     private void RenderTiles(){
@@ -62,6 +65,34 @@ class GraphicsHandler{
             strokeWeight(2);
             line(0,0,0,-TILE_SIZE/2);
         }
+        popStyle();
+        popMatrix();
+    }
+
+    // Debug
+
+    private void RenderPossiblePlacements(){
+        pushMatrix();
+        translate(targetMargin + TILE_SIZE/2, targetMargin + TILE_SIZE/2);
+
+        pushStyle();
+        noStroke();
+
+
+        rectMode(CENTER);
+        textAlign(CENTER, CENTER);
+        textSize(20);
+        for(int i=0; i<gc.GetPossiblePlacements().size(); i++){
+            VectorInt v = gc.GetPossiblePlacements().get(i);
+            PVector drawPosition = new PVector(v.x * TILE_SIZE, v.y * TILE_SIZE);
+            fill(200,100,100);
+            rect(drawPosition.x, drawPosition.y, TILE_SIZE/2, TILE_SIZE/2);
+            fill(0);
+            text(gc.GetPossiblePlacementsRotations().get(i), drawPosition.x, drawPosition.y);
+        }
+
+        
+
         popStyle();
         popMatrix();
     }
