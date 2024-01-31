@@ -113,6 +113,9 @@ class GameController{
     Tile[][] placedTilesArray;
     TileData[] tileDataList;
 
+    IntDict tileDistribution_dict;
+    int discardCount = 0;
+
     // handlers
     GraphicsHandler graphicsHandler;
     UIHandler uiHandler;
@@ -133,11 +136,13 @@ class GameController{
     private IntList     previewCorrectTileRotations         = new IntList();
     private int         previewCorrectTileRotationsIndex    = 0;
 
+    // possible placements
+    ArrayList<VectorInt>    possiblePlacements             = new ArrayList<VectorInt>();
+    IntList                 possiblePlacementsRotations    = new IntList();
+
     // finals
     final int[][] theFourHorsemen = {{0,-1}, {1,0}, {0,1}, {-1,0}};
 
-    ArrayList<VectorInt>    possiblePlacements             = new ArrayList<VectorInt>();
-    IntList                 possiblePlacementsRotations    = new IntList();
 
 
 
@@ -148,6 +153,7 @@ class GameController{
         sprites = new PImage[spriteSize];
         tileDataList = new TileData[spriteSize];
         tileDataList = this.LoadTilesFromJSON();
+        tileDistribution_dict = new IntDict();
 
         // create array for placed tiles
         placedTilesArray = new Tile[PLAY_AREA_SIZE.x][PLAY_AREA_SIZE.y];
@@ -168,8 +174,10 @@ class GameController{
         Tile starterTile = new Tile(new VectorInt(6,6), 14);
         placedTilesArray[6][6] = starterTile;
 
-        
-        this.SelectNewRandomSprite();
+        FillTilePile();
+        tileDistribution_dict.sub("14", 1);
+
+        DrawNextTile();
     }
 
 
@@ -187,7 +195,7 @@ class GameController{
         if(this.isPreviewingPlacement && this.hasConfirmedPlacement){
             PlaceTile();
             ClearPlacementFlags();
-            SelectNewRandomSprite();
+            DrawNextTile();
         }
     }
 
@@ -203,12 +211,36 @@ class GameController{
     // FUNCTIONALITY
 
     // changes the next sprite to a random sprite
-     public void SelectNewRandomSprite(){
-        println("Selecting new random sprite!");
-        previewTileSpriteID = PApplet.parseInt(random(0, spriteSize));
+     public void DrawNextTile(){
+        if( tileDistribution_dict.size() == 0) return;
+
+        int randomIndex = PApplet.parseInt(random(0, tileDistribution_dict.size()));
+
+        String spriteID  = tileDistribution_dict.keyArray()[randomIndex];
+        int tileCount = tileDistribution_dict.get(spriteID);
+        
+        // decrease the tileCount
+        tileDistribution_dict.sub(spriteID, 1);
+        if(tileDistribution_dict.get(spriteID) == 0)
+            tileDistribution_dict.remove(spriteID);
+
+        // copy sprite id to the preview sprite
+        previewTileSpriteID = PApplet.parseInt(spriteID);
+        
+        // check if it is impossible
         if(!IsPlacementPossible()){
-            SelectNewRandomSprite();
+            discardCount++;
+            DrawNextTile();
         }
+
+        println("Count: " + GetDistributionCount());
+    }
+
+     public int GetDistributionCount(){
+        int count = 0;
+        for(int i : tileDistribution_dict.values())
+            count += i;
+        return count;
     }
 
     // places a tile at the current preview position
@@ -253,6 +285,25 @@ class GameController{
         }
         previewTileRotation = previewCorrectTileRotations.get(0);
     }
+
+     public void FillTilePile(){
+        tileDistribution_dict.clear();
+        for(int i=0; i<tileDataList.length; i++){
+            TileData td = tileDataList[i];
+
+            String id = str(td.getSpriteID());
+            int count = td.getTileCount();
+
+            tileDistribution_dict.set(id, count);
+        }
+    }
+
+
+
+
+
+
+
 
 
 
@@ -349,17 +400,23 @@ class GameController{
 
 
 
+
+
+
+
+
+
     // JSON METHODS
 
      public TileData[] LoadTilesFromJSON(){
-        String filename = "tileConnections.json";
-        JSONArray tilePieces = loadJSONArray(filename);
+        String filename = "tileData";
+        JSONArray tilePieces = loadJSONArray(filename + ".json");
         TileData[] loadedTiles = new TileData[tilePieces.size()];
 
         // loop through available loaded Tile objects
         for (int i=0; i < tilePieces.size(); i++){
             // variables for each tile object
-            int tileID;
+            int tileID, tileCount;
             int[] portTypes = new int[4];
             boolean[][] portConnections = new boolean[4][4];
             
@@ -368,6 +425,9 @@ class GameController{
 
             // retrieve tile id
             tileID = tile.getInt("id");
+
+            // retrieve tile count
+            tileCount = tile.getInt("count");
 
             // retrieve tile portTypes
             JSONArray portTypesArray   = tile.getJSONArray("portTypes");
@@ -383,13 +443,20 @@ class GameController{
             }
 
             // add a tile with this information
-            TileData newTileData = new TileData(tileID, portTypes, portConnections);
+            TileData newTileData = new TileData(tileID, tileCount, portTypes, portConnections);
             loadedTiles[i] = newTileData;
         }
 
         println("\nLoaded " + loadedTiles.length + " tiles from JSON file!");
         return loadedTiles;
     }
+
+
+
+
+
+
+
 
 
 
@@ -471,18 +538,22 @@ class GameController{
     public boolean IsPlacementPossible(){
         possiblePlacements.clear();
         possiblePlacementsRotations.clear();
+
         for(int x=0; x<PLAY_AREA_SIZE.x; x++){
             for(int y=0; y<PLAY_AREA_SIZE.y; y++){
                 VectorInt pos = new VectorInt(x, y);
+
                 if(IsValidTilePlacement(pos))
                     possiblePlacements.add(pos);
                 else
                     continue;
+                
                 boolean[] rotations = IsConnectionPossible(pos, previewTileSpriteID);
                 int count = 0;
                 for(int i=0; i<4; i++){
                     if(rotations[i]) count++;
                 }
+                
                 possiblePlacementsRotations.append(count);
             }
         }
@@ -491,6 +562,13 @@ class GameController{
             return true;
         return false;
     }
+
+
+
+
+
+
+
 
 
 
@@ -712,18 +790,23 @@ class Tile{
     }
 }
 class TileData{
-    int tileID;
+    int tileID, tileCount;
     int[] portTypes;
     boolean[][] portConnections;
 
-    TileData(int tileID, int[] portTypes, boolean[][] portConnections){
+    TileData(int tileID, int tileCount, int[] portTypes, boolean[][] portConnections){
         this.tileID = tileID;
         this.portTypes = portTypes;
         this.portConnections = portConnections;
+        this.tileCount = tileCount;
     }
 
     public int getSpriteID(){
         return this.tileID;
+    }
+
+    public int getTileCount(){
+        return this.tileCount;
     }
 
     // return entire port types list
@@ -807,33 +890,46 @@ class UIHandler{
         fill(120,120,120,120);
         stroke(255,0,0);
         strokeWeight(2);
-        rect(0,0,440,215);
+        rect(0,0,440,230);
 
         translate(20,20);
 
-        fill(255,0,0);
+        fill(120,255,120);
         textSize(20);
 
+        // sprite id
         text("Sprite ID: " + spriteID, 0, 0);
-        text("Grid position. " + gridPosition, 0, 25);
-        text("Tile Rotation: " + DIRECTION_NAMES[tileRotation], 0, 50);
+        translate(0,25);
 
+        // grid position
+        text("Grid position. " + gridPosition, 0, 0);
+        translate(0,25);
+        
+        // tile rotation
+        text("Tile Rotation: " + DIRECTION_NAMES[tileRotation], 0, 0);
+        translate(0,40);
+        
+        // main faces
         String s = "null";
         s = "[ " + TYPE_NAMES[mainFaces[0]];
         for(int i=1; i<mainFaces.length; i++){
             s += ", " + TYPE_NAMES[mainFaces[i]];
         }
         s += " ]";
-        text("Main faces: " + s, 0, 75);
-
+        text("Main faces: " + s, 0, 0);
+        translate(0,25);
+        
+        // surrounding faces
         s = "null";
         s = "[ " + TYPE_NAMES[surroundingFaces[0]];
         for(int i=1; i<surroundingFaces.length; i++){
             s += ", " + TYPE_NAMES[surroundingFaces[i]];
         }
         s += " ]";
-        text("Surrounding faces: " + s, 0, 100);
-
+        text("Surrounding faces: " + s, 0, 0);
+        translate(0,40);
+        
+        // correct rotations
         s = "null";
         if( correctTileRotations != null ){
             s = "[ " + DIRECTION_NAMES[correctTileRotations.get(0)];
@@ -842,9 +938,13 @@ class UIHandler{
             }
             s += " ]";
         }
-        text("Correct rotations: " + s, 0, 125);
-
-        text("Correct rotations index: " + correctTileRotationsIndex, 0, 150);
+        text("Correct rotations: " + s, 0, 0);
+        translate(0,25);
+        
+        // correct rotation index
+        text("Correct rotations index: " + correctTileRotationsIndex, 0, 0);
+        translate(0,25);
+        
 
 
 

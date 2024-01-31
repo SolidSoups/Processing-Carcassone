@@ -10,22 +10,33 @@ class Tile{
     private boolean lock = false;
 
     // sprite id for tile
-    int id;
+    int id, count;
 
     Tile(int id){
         this.id = id;
+        this.count = 0;
         this.portConnections = new boolean[4][4];
     }
 
     // constructor for creating a loaded tile object
-    Tile(int id, int[] portTypes, boolean[][] portConnections){
+    Tile(int id, int count, int[] portTypes, boolean[][] portConnections){
         this.id = id;
+        this.count = count;
         this.portTypes = portTypes;
         this.portConnections = portConnections;
         this.lock = true;
     }
 
     // GETTER METHODS
+
+    public int getCount(){
+        return this.count;
+    }
+
+    public void setCount(int count){
+        if(lock) return;
+        this.count = count;
+    }
 
     public int getID(){
         return this.id;

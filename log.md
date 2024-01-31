@@ -99,3 +99,8 @@ The tiles now finally are only allowed to be placed at a given position IF:
 I have made some improvements to the debug mode. The UI will now show every location where a placement is possible, and how many placements are possible at that location. 
 
 **Next i am planning to restructure, recycle and clean my code**
+
+## E12: January 31, 4:00pm (2h)
+I have implemented a functionality to both programs that allows the creation of a "*tile deck*", given a certain distribution property assigned by the **tile utility** program (previously tile connection helper). Every tile is assigned a count, which is how many of that tile will be in the deck. It saves it in the same JSON file, and in the main program that json file is loaded as normal. But now the `TileData` class has a int proprerty for that tiles specific count. When the main game loads up, it fills a deck with the specified distribution. I am planning on adding a distribution multiplier, so that you can change how long and big the game will be. Maybe you could have infinite with a timer, and cards are drawn based on their chance. So far its working good, but the game doesnt know to stop when the card deck is out, so it keeps recycling the same last tile over and over again.
+
+**Next i think i will need to implement a stop game functionality**

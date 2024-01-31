@@ -1,16 +1,21 @@
 class TileData{
-    int tileID;
+    int tileID, tileCount;
     int[] portTypes;
     boolean[][] portConnections;
 
-    TileData(int tileID, int[] portTypes, boolean[][] portConnections){
+    TileData(int tileID, int tileCount, int[] portTypes, boolean[][] portConnections){
         this.tileID = tileID;
         this.portTypes = portTypes;
         this.portConnections = portConnections;
+        this.tileCount = tileCount;
     }
 
     public int getSpriteID(){
         return this.tileID;
+    }
+
+    public int getTileCount(){
+        return this.tileCount;
     }
 
     // return entire port types list

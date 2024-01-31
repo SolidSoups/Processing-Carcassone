@@ -69,33 +69,46 @@ class UIHandler{
         fill(120,120,120,120);
         stroke(255,0,0);
         strokeWeight(2);
-        rect(0,0,440,215);
+        rect(0,0,440,230);
 
         translate(20,20);
 
-        fill(255,0,0);
+        fill(120,255,120);
         textSize(20);
 
+        // sprite id
         text("Sprite ID: " + spriteID, 0, 0);
-        text("Grid position. " + gridPosition, 0, 25);
-        text("Tile Rotation: " + DIRECTION_NAMES[tileRotation], 0, 50);
+        translate(0,25);
 
+        // grid position
+        text("Grid position. " + gridPosition, 0, 0);
+        translate(0,25);
+        
+        // tile rotation
+        text("Tile Rotation: " + DIRECTION_NAMES[tileRotation], 0, 0);
+        translate(0,40);
+        
+        // main faces
         String s = "null";
         s = "[ " + TYPE_NAMES[mainFaces[0]];
         for(int i=1; i<mainFaces.length; i++){
             s += ", " + TYPE_NAMES[mainFaces[i]];
         }
         s += " ]";
-        text("Main faces: " + s, 0, 75);
-
+        text("Main faces: " + s, 0, 0);
+        translate(0,25);
+        
+        // surrounding faces
         s = "null";
         s = "[ " + TYPE_NAMES[surroundingFaces[0]];
         for(int i=1; i<surroundingFaces.length; i++){
             s += ", " + TYPE_NAMES[surroundingFaces[i]];
         }
         s += " ]";
-        text("Surrounding faces: " + s, 0, 100);
-
+        text("Surrounding faces: " + s, 0, 0);
+        translate(0,40);
+        
+        // correct rotations
         s = "null";
         if( correctTileRotations != null ){
             s = "[ " + DIRECTION_NAMES[correctTileRotations.get(0)];
@@ -104,9 +117,13 @@ class UIHandler{
             }
             s += " ]";
         }
-        text("Correct rotations: " + s, 0, 125);
-
-        text("Correct rotations index: " + correctTileRotationsIndex, 0, 150);
+        text("Correct rotations: " + s, 0, 0);
+        translate(0,25);
+        
+        // correct rotation index
+        text("Correct rotations index: " + correctTileRotationsIndex, 0, 0);
+        translate(0,25);
+        
 
 
 

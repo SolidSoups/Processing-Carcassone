@@ -4,6 +4,9 @@ class GameController{
     Tile[][] placedTilesArray;
     TileData[] tileDataList;
 
+    IntDict tileDistribution_dict;
+    int discardCount = 0;
+
     // handlers
     GraphicsHandler graphicsHandler;
     UIHandler uiHandler;
@@ -24,11 +27,13 @@ class GameController{
     private IntList     previewCorrectTileRotations         = new IntList();
     private int         previewCorrectTileRotationsIndex    = 0;
 
+    // possible placements
+    ArrayList<VectorInt>    possiblePlacements             = new ArrayList<VectorInt>();
+    IntList                 possiblePlacementsRotations    = new IntList();
+
     // finals
     final int[][] theFourHorsemen = {{0,-1}, {1,0}, {0,1}, {-1,0}};
 
-    ArrayList<VectorInt>    possiblePlacements             = new ArrayList<VectorInt>();
-    IntList                 possiblePlacementsRotations    = new IntList();
 
 
 
@@ -39,6 +44,7 @@ class GameController{
         sprites = new PImage[spriteSize];
         tileDataList = new TileData[spriteSize];
         tileDataList = this.LoadTilesFromJSON();
+        tileDistribution_dict = new IntDict();
 
         // create array for placed tiles
         placedTilesArray = new Tile[PLAY_AREA_SIZE.x][PLAY_AREA_SIZE.y];
@@ -59,8 +65,10 @@ class GameController{
         Tile starterTile = new Tile(new VectorInt(6,6), 14);
         placedTilesArray[6][6] = starterTile;
 
-        
-        this.SelectNewRandomSprite();
+        FillTilePile();
+        tileDistribution_dict.sub("14", 1);
+
+        DrawNextTile();
     }
 
 
@@ -78,7 +86,7 @@ class GameController{
         if(this.isPreviewingPlacement && this.hasConfirmedPlacement){
             PlaceTile();
             ClearPlacementFlags();
-            SelectNewRandomSprite();
+            DrawNextTile();
         }
     }
 
@@ -94,12 +102,36 @@ class GameController{
     // FUNCTIONALITY
 
     // changes the next sprite to a random sprite
-    void SelectNewRandomSprite(){
-        println("Selecting new random sprite!");
-        previewTileSpriteID = int(random(0, spriteSize));
+    void DrawNextTile(){
+        if( tileDistribution_dict.size() == 0) return;
+
+        int randomIndex = int(random(0, tileDistribution_dict.size()));
+
+        String spriteID  = tileDistribution_dict.keyArray()[randomIndex];
+        int tileCount = tileDistribution_dict.get(spriteID);
+        
+        // decrease the tileCount
+        tileDistribution_dict.sub(spriteID, 1);
+        if(tileDistribution_dict.get(spriteID) == 0)
+            tileDistribution_dict.remove(spriteID);
+
+        // copy sprite id to the preview sprite
+        previewTileSpriteID = int(spriteID);
+        
+        // check if it is impossible
         if(!IsPlacementPossible()){
-            SelectNewRandomSprite();
+            discardCount++;
+            DrawNextTile();
         }
+
+        println("Count: " + GetDistributionCount());
+    }
+
+    int GetDistributionCount(){
+        int count = 0;
+        for(int i : tileDistribution_dict.values())
+            count += i;
+        return count;
     }
 
     // places a tile at the current preview position
@@ -144,6 +176,25 @@ class GameController{
         }
         previewTileRotation = previewCorrectTileRotations.get(0);
     }
+
+    void FillTilePile(){
+        tileDistribution_dict.clear();
+        for(int i=0; i<tileDataList.length; i++){
+            TileData td = tileDataList[i];
+
+            String id = str(td.getSpriteID());
+            int count = td.getTileCount();
+
+            tileDistribution_dict.set(id, count);
+        }
+    }
+
+
+
+
+
+
+
 
 
 
@@ -240,17 +291,23 @@ class GameController{
 
 
 
+
+
+
+
+
+
     // JSON METHODS
 
     TileData[] LoadTilesFromJSON(){
-        String filename = "tileConnections.json";
-        JSONArray tilePieces = loadJSONArray(filename);
+        String filename = "tileData";
+        JSONArray tilePieces = loadJSONArray(filename + ".json");
         TileData[] loadedTiles = new TileData[tilePieces.size()];
 
         // loop through available loaded Tile objects
         for (int i=0; i < tilePieces.size(); i++){
             // variables for each tile object
-            int tileID;
+            int tileID, tileCount;
             int[] portTypes = new int[4];
             boolean[][] portConnections = new boolean[4][4];
             
@@ -259,6 +316,9 @@ class GameController{
 
             // retrieve tile id
             tileID = tile.getInt("id");
+
+            // retrieve tile count
+            tileCount = tile.getInt("count");
 
             // retrieve tile portTypes
             JSONArray portTypesArray   = tile.getJSONArray("portTypes");
@@ -274,13 +334,20 @@ class GameController{
             }
 
             // add a tile with this information
-            TileData newTileData = new TileData(tileID, portTypes, portConnections);
+            TileData newTileData = new TileData(tileID, tileCount, portTypes, portConnections);
             loadedTiles[i] = newTileData;
         }
 
         println("\nLoaded " + loadedTiles.length + " tiles from JSON file!");
         return loadedTiles;
     }
+
+
+
+
+
+
+
 
 
 
@@ -362,18 +429,22 @@ class GameController{
     public boolean IsPlacementPossible(){
         possiblePlacements.clear();
         possiblePlacementsRotations.clear();
+
         for(int x=0; x<PLAY_AREA_SIZE.x; x++){
             for(int y=0; y<PLAY_AREA_SIZE.y; y++){
                 VectorInt pos = new VectorInt(x, y);
+
                 if(IsValidTilePlacement(pos))
                     possiblePlacements.add(pos);
                 else
                     continue;
+                
                 boolean[] rotations = IsConnectionPossible(pos, previewTileSpriteID);
                 int count = 0;
                 for(int i=0; i<4; i++){
                     if(rotations[i]) count++;
                 }
+                
                 possiblePlacementsRotations.append(count);
             }
         }
@@ -382,6 +453,13 @@ class GameController{
             return true;
         return false;
     }
+
+
+
+
+
+
+
 
 
 

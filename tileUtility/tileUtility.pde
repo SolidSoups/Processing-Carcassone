@@ -115,6 +115,10 @@ void draw(){
     textAlign(TOP, TOP);
     text("ID: " + str(spriteIndex), 30, 10);
 
+    // display tile count
+    fill(255);
+    text("C: " + tiles.get(spriteIndex).getCount(), width-100, 10);
+
     // display current sprite in the middle
     image(tileSprites[spriteIndex], 100, 100, 400, 400);
 
@@ -206,6 +210,22 @@ void keyPressed(){
         tiles.get(spriteIndex).flipPortConnection(currentDirection, WEST);
     }
 
+    // increase count
+    if(key == 'c'){
+        Tile t = tiles.get(spriteIndex);
+        int count = t.getCount();
+        count++;
+        t.setCount(count);
+    }
+
+    // decrease count
+    if(key == 'x'){
+        Tile t = tiles.get(spriteIndex);
+        int count = t.getCount();
+        count--;
+        t.setCount(count);
+    }
+
 
     // cycle current port clockswise
     if(keyCode == RIGHT){
@@ -253,6 +273,9 @@ void saveTilesAsJSON(){
         tile.setInt("id", t.getID());
         println("Set tile ID...");
 
+        // Set count
+        tile.setInt("count", t.getCount());
+
         // set portTypes as an array such as ex. {GRASS, ROAD, CITY, ROAD}
         JSONArray  portTypes = new JSONArray();
         for(int i=0; i<4; i++){ 
@@ -297,6 +320,7 @@ ArrayList<Tile> loadTilesFromJSON(){
     for (int i=0; i < tilePieces.size(); i++){
         // variables for each tile object
         int tileID;
+        int tileCount = 0;
         int[] portTypes = new int[4];
         boolean[][] portConnections = new boolean[4][4];
         
@@ -305,6 +329,9 @@ ArrayList<Tile> loadTilesFromJSON(){
 
         // retrieve tile id
         tileID = tile.getInt("id");
+
+        // retrieve count
+        tileCount = tile.getInt("count");
 
         // retrieve tile portTypes
         JSONArray portTypesArray   = tile.getJSONArray("portTypes");
@@ -320,7 +347,7 @@ ArrayList<Tile> loadTilesFromJSON(){
         }
 
         // add a tile with this information
-        Tile newTile = new Tile(tileID, portTypes, portConnections);
+        Tile newTile = new Tile(tileID, tileCount, portTypes, portConnections);
         loadedTiles.add(newTile);
     }
     
