@@ -104,3 +104,6 @@ I have made some improvements to the debug mode. The UI will now show every loca
 I have implemented a functionality to both programs that allows the creation of a "*tile deck*", given a certain distribution property assigned by the **tile utility** program (previously tile connection helper). Every tile is assigned a count, which is how many of that tile will be in the deck. It saves it in the same JSON file, and in the main program that json file is loaded as normal. But now the `TileData` class has a int proprerty for that tiles specific count. When the main game loads up, it fills a deck with the specified distribution. I am planning on adding a distribution multiplier, so that you can change how long and big the game will be. Maybe you could have infinite with a timer, and cards are drawn based on their chance. So far its working good, but the game doesnt know to stop when the card deck is out, so it keeps recycling the same last tile over and over again.
 
 **Next i think i will need to implement a stop game functionality**
+
+## E13: January 31, 7:22pm (1h 20min);
+I have cleaned up the code just about everywhere. Variables have been given better names and methods and functions have been organized into group. I have also added a function for DEBUG_MODE where you can see the ditribution of the deck.

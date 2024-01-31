@@ -1,4 +1,4 @@
-GameController gc;
+GameController gc_ref;
 
 // variables
 final float     targetMargin = 100;
@@ -55,23 +55,23 @@ void setup(){
     println("TILE_SIZE: \t\t" + TILE_SIZE);
     println("PLAY_AREA_SIZE: \t" + PLAY_AREA_SIZE);
 
-    gc = new GameController();
+    gc_ref = new GameController();
 }
 
 void draw(){
     background(0);
 
-    gc.Update();
-    gc.Render();
+    gc_ref.Update();
+    gc_ref.Render();
 }
 
 
 void mousePressed(){
     if(mouseButton == LEFT){
-        gc.LeftMousePressed();
+        gc_ref.LeftMousePressed();
     }
     if( mouseButton == RIGHT){
-        gc.RightMousePressed();
+        gc_ref.RightMousePressed();
     }
 }
 

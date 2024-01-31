@@ -1,63 +1,117 @@
 class UIHandler{
     // GameController reference
-    GameController gc;
-
+    GameController gc_ref;
 
     // color scheme
-    color grayBoxing = color(90, 90, 110);
+    color grayColor = color(90, 90, 110);
+    color grayColorOpaque = color(90,90,110,200);
 
-    // locations of button controls
-    PVector buttonCancelLoc;
-    PVector buttonConfirmLoc;
+    // conditinoal button positions
+    PVector buttonCancelPosition;
+    PVector buttonConfirmPosition;
 
-    // leftMouseDown
-    boolean leftMousePressed = false;
-
-    // references
-    final int CANCEL = 0;
-    final int CONFIRM = 1;
-    final int NONE = 3;
-    
     // conditional button parameters
     PVector buttonBoxSize   = new PVector(width*0.05f, height*0.16);
-    float padding           = buttonBoxSize.x*0.25f;
-    float boxRadius         = buttonBoxSize.x*0.5f;
-    float buttonRadius      = boxRadius*0.75f;
+    float   padding           = buttonBoxSize.x*0.25f;
+    float   boxRadius         = buttonBoxSize.x*0.5f;
+    float   buttonRadius      = boxRadius*0.75f;
     PVector drawLoc         = new PVector(width - (padding + buttonBoxSize.x), height - (padding + buttonBoxSize.y));
 
-    public UIHandler(GameController gc){
-        this.gc = gc;
+    // input
+    boolean leftMousePressed = false;
+
+    // finals
+    final int CANCEL    = 0;
+    final int CONFIRM   = 1;
+    final int NONE      = 3;
+    
+    
+
+
+
+    // CONSTRUCTOR
+    public UIHandler(GameController gc_ref){
+        this.gc_ref = gc_ref;
 
         
-        buttonCancelLoc = new PVector(drawLoc.x + boxRadius, drawLoc.y + boxRadius);
-        buttonConfirmLoc = new PVector(drawLoc.x + boxRadius, drawLoc.y + buttonBoxSize.y - boxRadius);
+        buttonCancelPosition = new PVector(drawLoc.x + boxRadius, drawLoc.y + boxRadius);
+        buttonConfirmPosition = new PVector(drawLoc.x + boxRadius, drawLoc.y + buttonBoxSize.y - boxRadius);
     }
 
-
+    // MAIN METHOD
     public void Render(){
-        VectorInt gridMousePosition = gc.MouseToGridPosition();
+        VectorInt gridMousePosition = gc_ref.MouseToGridPosition();
 
-        if( gridMousePosition != null && gc.IsValidTilePlacement(gridMousePosition) )
+        if( gridMousePosition != null && gc_ref.IsValidTilePlacement(gridMousePosition) )
             drawHighlightedPlacement(gridMousePosition);
         
         drawNextTile();
 
-        if( gc.isPreviewingPlacement() ){
+        if( gc_ref.isPreviewingMove() ){
             drawConditionalButton();
             if( DEBUG_MODE )
-                drawPreviewVariables();
+                drawMoveVariables();
         }
 
+        drawTileDistribution();
     }
 
-    private void drawPreviewVariables(){
-        int spriteID = gc.GetPreviewTileSpriteID();
-        VectorInt gridPosition = gc.GetPreviewTileGridPosition();
-        int tileRotation = gc.GetPreviewTileRotation();
-        int[] mainFaces = gc.getTileData(spriteID).getPortTypes();
-        int[] surroundingFaces = gc.RetrieveSurroundingFaceTypes(gridPosition);
-        IntList correctTileRotations = gc.GetPreviewTileCorrectTileRotations();
-        int correctTileRotationsIndex = gc.GetPreviewTileCorrectTileRotationsIndex();
+
+
+
+    // DRAW METHODS
+
+    private void drawTileDistribution(){
+        IntDict     tileDistr           = gc_ref.get_tileDistribution();
+        String[]    tileDistr_keys      = tileDistr.keyArray();
+        int[]       tileDistr_values    = tileDistr.valueArray();
+
+        String tileDistr_keysString = "";
+        String tileDistr_valuesString = "";
+        for(int i=0; i<tileDistr.size(); i++){
+            tileDistr_keysString += "ID " + tileDistr_keys[i] + ": \n";
+            tileDistr_valuesString += tileDistr_values[i] + "pcs\n";
+        }
+
+
+        float   margin = 50;
+        PVector boxSize = new PVector(200, 640);
+        PVector controlPosition = new PVector(width-height*0.2, 230);
+
+        pushMatrix();
+        pushStyle();
+
+        translate(controlPosition.x, controlPosition.y);
+
+        fill(grayColorOpaque);
+        stroke(255,0,0);
+        rect(0, 0, boxSize.x, boxSize.y);
+
+        translate(20,30);
+
+        fill(0,255,0);
+        textSize(20);
+        textAlign(BOTTOM, TOP);
+        textLeading(25);
+
+        
+        text("Count: " + gc_ref.GetDistributionCount(), 0, -20);
+
+        text(tileDistr_keysString, 0, 0);
+        text(tileDistr_valuesString, 120, 0);
+
+        popStyle();
+        popMatrix();
+    }
+
+    private void drawMoveVariables(){
+        int spriteID = gc_ref.get_nextSpriteID();
+        VectorInt gridPosition = gc_ref.get_moveGridPosition();
+        int tileRotation = gc_ref.get_moveRotation();
+        int[] mainFaces = gc_ref.FetchTileData(spriteID).getPortTypes();
+        int[] surroundingFaces = gc_ref.CalculateNeighbouringFaces(gridPosition);
+        IntList correctTileRotations = gc_ref.get_moveValidRotations();
+        int correctTileRotationsIndex = gc_ref.get_moveValidRotationsIndex();
         
         
         pushMatrix();
@@ -158,7 +212,7 @@ class UIHandler{
 
         translate(drawLoc.x, drawLoc.y);
 
-        fill(grayBoxing);
+        fill(grayColor);
         stroke(30);
         strokeWeight(2);
         rectMode(CORNER);
@@ -166,14 +220,14 @@ class UIHandler{
 
         translate(padding, padding);
         imageMode(CORNER);
-        image(gc.getNextSprite(), 0, 0, frameSize.x, frameSize.y);
+        image(gc_ref.getNextSprite(), 0, 0, frameSize.x, frameSize.y);
         
         popMatrix();
     }
 
     private void drawConditionalButton(){
 
-        fill(grayBoxing);
+        fill(grayColor);
         stroke(30);
         strokeWeight(2);
         rectMode(CORNER);
@@ -181,27 +235,33 @@ class UIHandler{
 
         ellipseMode(RADIUS);
         
-        if( isInsideButton(this.CANCEL) )
+        if( IsInsideButton(this.CANCEL) )
             fill(220, 100, 100);
         else
             fill(255, 100, 100);
-        ellipse(buttonCancelLoc.x, buttonCancelLoc.y, buttonRadius, buttonRadius);
+        ellipse(buttonCancelPosition.x, buttonCancelPosition.y, buttonRadius, buttonRadius);
 
-        if( isInsideButton(this.CONFIRM) )
+        if( IsInsideButton(this.CONFIRM) )
             fill(100, 220, 100);
         else   
             fill(100, 255, 100);
-        ellipse(buttonConfirmLoc.x, buttonConfirmLoc.y, buttonRadius, buttonRadius);
+        ellipse(buttonConfirmPosition.x, buttonConfirmPosition.y, buttonRadius, buttonRadius);
     }
 
-    private boolean isInsideButton(int button){
+
+
+
+
+    // BUTTON CONTROL
+
+    private boolean IsInsideButton(int button){
         PVector mousePosition = new PVector(mouseX, mouseY);
         PVector differensVector;
-        if( gc.isPreviewingPlacement() ){
+        if( gc_ref.isPreviewingMove() ){
             if( button == this.CANCEL )
-                differensVector = PVector.sub(buttonCancelLoc, mousePosition);
+                differensVector = PVector.sub(buttonCancelPosition, mousePosition);
             else if( button == this.CONFIRM ){
-                differensVector = PVector.sub(buttonConfirmLoc, mousePosition);
+                differensVector = PVector.sub(buttonConfirmPosition, mousePosition);
             }
             else return false;
         }
@@ -216,7 +276,7 @@ class UIHandler{
         return true;
     }
 
-    public boolean isInsideUI(){
+    public boolean IsInsideUI(){
         // check button
         PVector mousePos = new PVector(mouseX, mouseY);
         PVector buttonPanelMax = new PVector(drawLoc.x + buttonBoxSize.x, drawLoc.y + buttonBoxSize.y);
@@ -230,20 +290,11 @@ class UIHandler{
 
     public int LeftMousePressed(){
         this.leftMousePressed = true;
-        if( isInsideButton(this.CANCEL) )
+        if( IsInsideButton(this.CANCEL) )
             return this.CANCEL;
-        else if( isInsideButton(this.CONFIRM) )
+        else if( IsInsideButton(this.CONFIRM) )
             return this.CONFIRM;
         else
             return this.NONE;
-    }
-
-    // getters
-    public PVector getCancelButtonLocation(){
-        return this.buttonCancelLoc;
-    }
-    
-    public PVector getConfirmButtonLocation(){
-        return this.buttonConfirmLoc;
     }
 }

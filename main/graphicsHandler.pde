@@ -1,25 +1,40 @@
 class GraphicsHandler{
     // Game Controller reference
-    private GameController gc;
+    private GameController gc_ref;
 
-    public GraphicsHandler(GameController gc){
-        this.gc = gc;
+
+
+
+    // CONSTRUCTOR
+    public GraphicsHandler(GameController gc_ref){
+        this.gc_ref = gc_ref;
     }
 
+
+
+
+    // MAIN METHOD
     public void Render(){
         if(DEBUG_MODE){
             RenderGridBounds();
             RenderPossiblePlacements();
         } 
         RenderTiles();
-        if(gc.isPreviewingPlacement())
+        if(gc_ref.isPreviewingMove())
             RenderPreviewTile();
         
         if(DEBUG_MODE) RenderMouseGridLocation();
     }
 
+
+
+
+
+
+    // RENDER METHODS
+
     private void RenderTiles(){
-        Tile[][] pt = gc.GetPlacedTilesArray();
+        Tile[][] pt = gc_ref.get_placedTiles();
         for(int x = 0; x < PLAY_AREA_SIZE.x; x++){
             for(int y = 0; y < PLAY_AREA_SIZE.y; y++){
                 Tile tileToRender = pt[x][y];
@@ -30,11 +45,11 @@ class GraphicsHandler{
     }
 
     private void RenderPreviewTile(){
-        this.RenderTile(gc.GetPreviewTileSpriteID(), gc.GetPreviewTileRotation(),  gc.GetPreviewTileGridPosition(), true);
+        this.RenderTile(gc_ref.get_nextSpriteID(), gc_ref.get_moveRotation(),  gc_ref.get_moveGridPosition(), true);
     }
 
     private void RenderTile(int spriteID, int rotation, VectorInt gridLocation, boolean highlight){
-        PImage      sprite          = gc.getTileSprite(spriteID);
+        PImage      sprite          = gc_ref.FetchTileSprite(spriteID);
 
         PVector drawLocation = new PVector(
             gridLocation.x * TILE_SIZE, 
@@ -69,7 +84,9 @@ class GraphicsHandler{
         popMatrix();
     }
 
-    // Debug
+
+
+    // DEBUG RENDER METHODS
 
     private void RenderPossiblePlacements(){
         pushMatrix();
@@ -82,13 +99,13 @@ class GraphicsHandler{
         rectMode(CENTER);
         textAlign(CENTER, CENTER);
         textSize(20);
-        for(int i=0; i<gc.GetPossiblePlacements().size(); i++){
-            VectorInt v = gc.GetPossiblePlacements().get(i);
+        for(int i=0; i<gc_ref.get_validMoves().size(); i++){
+            VectorInt v = gc_ref.get_validMoves().get(i);
             PVector drawPosition = new PVector(v.x * TILE_SIZE, v.y * TILE_SIZE);
             fill(200,100,100);
             rect(drawPosition.x, drawPosition.y, TILE_SIZE/2, TILE_SIZE/2);
             fill(0);
-            text(gc.GetPossiblePlacementsRotations().get(i), drawPosition.x, drawPosition.y);
+            text(gc_ref.get_validRotations().get(i), drawPosition.x, drawPosition.y);
         }
 
         
@@ -124,7 +141,7 @@ class GraphicsHandler{
     }
 
     private void RenderMouseGridLocation(){
-        VectorInt mouseGridPosition = gc.MouseToGridPosition();
+        VectorInt mouseGridPosition = gc_ref.MouseToGridPosition();
         pushStyle();
         fill(255,0,0);
 
