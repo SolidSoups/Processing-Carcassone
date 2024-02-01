@@ -4,11 +4,15 @@ class Tile{
     VectorInt   gridPosition;
     int         tileID;
 
+    Tile[] neighbours;
+
     // main constructor
     public Tile(VectorInt gridPosition, int tileID){
         this.gridPosition = gridPosition;
         this.tileID = tileID;
         this.rotation = NORTH;
+
+        neighbours = new Tile[4];
     }
 
     // place tile constructor
@@ -16,6 +20,12 @@ class Tile{
         this.gridPosition = gridPosition;
         this.tileID = tileID;
         this.rotation = rotation;
+        
+        neighbours = new Tile[4];
+    }
+
+    public void AddNeighbour(int _index, Tile _tileRef){
+        this.neighbours[_index] = _tileRef;
     }
 
     // getters

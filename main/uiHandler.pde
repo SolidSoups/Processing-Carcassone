@@ -49,142 +49,17 @@ class UIHandler{
 
         if( gc_ref.isPreviewingMove() ){
             drawConditionalButton();
-            if( DEBUG_MODE )
-                drawMoveVariables();
         }
 
-        drawTileDistribution();
+        if(DEBUG_MODE) {
+            drawTileDistribution();
+            drawMoveVariables();
+        }
     }
-
 
 
 
     // DRAW METHODS
-
-    private void drawTileDistribution(){
-        IntDict     tileDistr           = gc_ref.get_tileDistribution();
-        String[]    tileDistr_keys      = tileDistr.keyArray();
-        int[]       tileDistr_values    = tileDistr.valueArray();
-
-        String tileDistr_keysString = "";
-        String tileDistr_valuesString = "";
-        for(int i=0; i<tileDistr.size(); i++){
-            tileDistr_keysString += "ID " + tileDistr_keys[i] + ": \n";
-            tileDistr_valuesString += tileDistr_values[i] + "pcs\n";
-        }
-
-
-        float   margin = 50;
-        PVector boxSize = new PVector(200, 640);
-        PVector controlPosition = new PVector(width-height*0.2, 230);
-
-        pushMatrix();
-        pushStyle();
-
-        translate(controlPosition.x, controlPosition.y);
-
-        fill(grayColorOpaque);
-        stroke(255,0,0);
-        rect(0, 0, boxSize.x, boxSize.y);
-
-        translate(20,30);
-
-        fill(0,255,0);
-        textSize(20);
-        textAlign(BOTTOM, TOP);
-        textLeading(25);
-
-        
-        text("Count: " + gc_ref.GetDistributionCount(), 0, -20);
-
-        text(tileDistr_keysString, 0, 0);
-        text(tileDistr_valuesString, 120, 0);
-
-        popStyle();
-        popMatrix();
-    }
-
-    private void drawMoveVariables(){
-        int spriteID = gc_ref.get_nextSpriteID();
-        VectorInt gridPosition = gc_ref.get_moveGridPosition();
-        int tileRotation = gc_ref.get_moveRotation();
-        int[] mainFaces = gc_ref.FetchTileData(spriteID).getPortTypes();
-        int[] surroundingFaces = gc_ref.CalculateNeighbouringFaces(gridPosition);
-        IntList correctTileRotations = gc_ref.get_moveValidRotations();
-        int correctTileRotationsIndex = gc_ref.get_moveValidRotationsIndex();
-        
-        
-        pushMatrix();
-        pushStyle();
-        textAlign(TOP, CENTER);
-
-        translate(20, 20);
-
-        fill(120,120,120,120);
-        stroke(255,0,0);
-        strokeWeight(2);
-        rect(0,0,440,230);
-
-        translate(20,20);
-
-        fill(120,255,120);
-        textSize(20);
-
-        // sprite id
-        text("Sprite ID: " + spriteID, 0, 0);
-        translate(0,25);
-
-        // grid position
-        text("Grid position. " + gridPosition, 0, 0);
-        translate(0,25);
-        
-        // tile rotation
-        text("Tile Rotation: " + DIRECTION_NAMES[tileRotation], 0, 0);
-        translate(0,40);
-        
-        // main faces
-        String s = "null";
-        s = "[ " + TYPE_NAMES[mainFaces[0]];
-        for(int i=1; i<mainFaces.length; i++){
-            s += ", " + TYPE_NAMES[mainFaces[i]];
-        }
-        s += " ]";
-        text("Main faces: " + s, 0, 0);
-        translate(0,25);
-        
-        // surrounding faces
-        s = "null";
-        s = "[ " + TYPE_NAMES[surroundingFaces[0]];
-        for(int i=1; i<surroundingFaces.length; i++){
-            s += ", " + TYPE_NAMES[surroundingFaces[i]];
-        }
-        s += " ]";
-        text("Surrounding faces: " + s, 0, 0);
-        translate(0,40);
-        
-        // correct rotations
-        s = "null";
-        if( correctTileRotations != null ){
-            s = "[ " + DIRECTION_NAMES[correctTileRotations.get(0)];
-            for(int i=1; i<correctTileRotations.size(); i++){
-                s += ", " + DIRECTION_NAMES[correctTileRotations.get(i)];
-            }
-            s += " ]";
-        }
-        text("Correct rotations: " + s, 0, 0);
-        translate(0,25);
-        
-        // correct rotation index
-        text("Correct rotations index: " + correctTileRotationsIndex, 0, 0);
-        translate(0,25);
-        
-
-
-
-
-        popStyle();
-        popMatrix();
-    }
 
     private void drawHighlightedPlacement(VectorInt gridMousePosition){
         pushMatrix();
@@ -247,6 +122,162 @@ class UIHandler{
             fill(100, 255, 100);
         ellipse(buttonConfirmPosition.x, buttonConfirmPosition.y, buttonRadius, buttonRadius);
     }
+
+
+
+    // DEBUG
+
+    private void drawTileDistribution(){
+        IntDict     tileDistr           = gc_ref.get_tileDistribution();
+        String[]    tileDistr_keys      = tileDistr.keyArray();
+        int[]       tileDistr_values    = tileDistr.valueArray();
+
+        IntList tileDistr_keys_list = new IntList();
+        IntList tileDistr_values_list = new IntList();
+        for(int i=0; i<tileDistr.size(); i++){
+            tileDistr_keys_list.append(int(tileDistr_keys[i]));
+            tileDistr_values_list.append(int(tileDistr_values[i]));
+        }
+
+
+        float   margin = 50;
+        PVector boxSize = new PVector(200, 640);
+        PVector controlPosition = new PVector(20, 260);
+
+        pushMatrix();
+        pushStyle();
+
+        translate(controlPosition.x, controlPosition.y);
+
+        fill(grayColorOpaque);
+        stroke(255,0,0);
+        rect(0, 0, boxSize.x, boxSize.y);
+
+        translate(20,30);
+
+        textSize(20);
+        textAlign(BOTTOM, TOP);
+        textLeading(25);
+
+        fill(0,255,200);
+        
+        text("Count: " + gc_ref.GetDistributionCount() + "   D: " + gc_ref.get_discardCount(), 0, -20);
+        
+        int prevKey = -1;
+        for(int i=0; i<tileDistr_keys_list.size(); i++){
+            int key = tileDistr_keys_list.get(i);
+            int value = tileDistr_values_list.get(i);
+
+            if(key == gc_ref.get_nextSpriteID())
+                fill(255,0,0);
+            else
+                fill(0,255,0);
+
+            if(key != (prevKey+1)){
+                if((prevKey+1) == gc_ref.get_nextSpriteID()){
+                    fill(255,0,0);
+                    text("ID: " + (prevKey+1),  0,      i*25);
+                    text("0",                   120,    i*25);
+                    fill(0,255,0);
+                }
+                translate(0,25);
+            }
+            
+            text("ID: " + key,  0,      i*25);
+            text(value,         120,    i*25);
+            
+            prevKey = key;
+        }
+
+        popStyle();
+        popMatrix();
+    }
+
+    private void drawMoveVariables(){
+        int spriteID = gc_ref.get_nextSpriteID();
+        VectorInt gridPosition = gc_ref.get_moveGridPosition();
+        int tileRotation = gc_ref.get_moveRotation();
+        int[] mainFaces = gc_ref.FetchTileData(spriteID).getPortTypes();
+        int[] surroundingFaces = gc_ref.CalculateNeighbouringFaces(gridPosition);
+        IntList correctTileRotations = gc_ref.get_moveValidRotations();
+        int correctTileRotationsIndex = gc_ref.get_moveValidRotationsIndex();
+        
+        
+        pushMatrix();
+        pushStyle();
+        textAlign(TOP, CENTER);
+
+        translate(20, 20);
+
+        fill(120,120,120,120);
+        stroke(255,0,0);
+        strokeWeight(2);
+        rect(0,0,440,230);
+
+        translate(20,20);
+
+        fill(120,255,120);
+        textSize(20);
+
+        // sprite id
+        text("Sprite ID: " + spriteID, 0, 0);
+        translate(0,25);
+
+        // grid position
+        text("Grid position: " + gridPosition, 0, 0);
+        translate(0,25);
+        
+        // tile rotation
+        text("Tile Rotation: " + DIRECTION_NAMES[tileRotation], 0, 0);
+        translate(0,40);
+        
+        // main faces
+        String s = "null";
+        s = "[ " + TYPE_NAMES[mainFaces[0]];
+        for(int i=1; i<mainFaces.length; i++){
+            s += ", " + TYPE_NAMES[mainFaces[i]];
+        }
+        s += " ]";
+        text("Main faces: " + s, 0, 0);
+        translate(0,25);
+        
+        // surrounding faces
+        s = "null";
+        if(surroundingFaces != null){
+            s = "[ " + TYPE_NAMES[surroundingFaces[0]];
+            for(int i=1; i<surroundingFaces.length; i++){
+                s += ", " + TYPE_NAMES[surroundingFaces[i]];
+            }
+            s += " ]";
+        }
+        text("Surrounding faces: " + s, 0, 0);
+        translate(0,40);
+        
+        // correct rotations
+        s = "null";
+        if( correctTileRotations.size() != 0 ){
+            s = "[ " + DIRECTION_NAMES[correctTileRotations.get(0)];
+            for(int i=1; i<correctTileRotations.size(); i++){
+                s += ", " + DIRECTION_NAMES[correctTileRotations.get(i)];
+            }
+            s += " ]";
+        }
+        text("Correct rotations: " + s, 0, 0);
+        translate(0,25);
+        
+        // correct rotation index
+        text("Correct rotations index: " + correctTileRotationsIndex, 0, 0);
+        translate(0,25);
+        
+
+
+
+
+        popStyle();
+        popMatrix();
+    }
+
+    
 
 
 

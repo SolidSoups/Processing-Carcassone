@@ -105,5 +105,8 @@ I have implemented a functionality to both programs that allows the creation of 
 
 **Next i think i will need to implement a stop game functionality**
 
-## E13: January 31, 7:22pm (1h 20min);
+## E13: January 31, 7:22pm (1h 20min)
 I have cleaned up the code just about everywhere. Variables have been given better names and methods and functions have been organized into group. I have also added a function for DEBUG_MODE where you can see the ditribution of the deck.
+
+## E14: February 1, 4:18pm
+Restructured the `drawDeckDistribution` method, allowing it to highlight the tile that was recently drawn in red, and displaying it as 0 if there are none left. I also moved this debug to the left side.

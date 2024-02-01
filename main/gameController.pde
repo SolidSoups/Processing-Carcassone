@@ -147,8 +147,6 @@ class GameController{
             discardCount++;
             DrawNextTile();
         }
-
-        println( "Count: " + GetDistributionCount() );
     }
 
     public int GetDistributionCount(){
@@ -186,6 +184,19 @@ class GameController{
 
     private void PlaceTile(){
         Tile newTile = new Tile(moveGridPosition, nextSpriteID, moveRotation);
+        
+        // set neighbours
+        Tile[] neighbours = FetchNeighbours(moveGridPosition);
+        println();
+        for(int i=0; i<4; i++){
+            if(neighbours[i] == null) continue;
+            newTile.AddNeighbour(i, neighbours[i]);
+            neighbours[i].AddNeighbour(BoundDirection(i-2), newTile);
+            println("Neighbour " + DIRECTION_NAMES[i] + ": " + neighbours[i].getSpriteID());
+        } 
+
+        // highlight a current city feature
+
         this.placedTiles_matrix[moveGridPosition.x][moveGridPosition.y] = newTile;
     }
 
@@ -204,6 +215,24 @@ class GameController{
         return false;
     }
 
+    private Tile[] FetchNeighbours(VectorInt _gridPosition){
+        Tile[] compassNeighbours = new Tile[4];
+        for(int i=0; i<4; i++){
+            VectorInt checkPosition = new VectorInt(
+                _gridPosition.x + theFourHorsemen[i][0],
+                _gridPosition.y + theFourHorsemen[i][1]
+            );
+            Tile checkTile = placedTiles_matrix[checkPosition.x][checkPosition.y];
+            if(checkTile != null){
+                compassNeighbours[i] = checkTile;
+            }
+        }
+
+        return compassNeighbours;
+    }
+
+
+    // FEATURE FUNCTIONALITY
 
 
 
@@ -216,7 +245,7 @@ class GameController{
         if( !PositionHasNeighbours(_gridPosition) )
             return false;
 
-        boolean[] _gridPositionCorrectRotations = GenerateValidRotations(_gridPosition, nextSpriteID);
+        boolean[] _gridPositionCorrectRotations = FetchValidRotations(_gridPosition, nextSpriteID);
         boolean noRotations = false;
         for(int i=0; i<4; i++)
             noRotations = noRotations || _gridPositionCorrectRotations[i];
@@ -227,42 +256,42 @@ class GameController{
     }
 
     public boolean IsPlacementPossible(){
-        validMoves.clear();
-        validRotations_IntList.clear();
+        this.validMoves.clear();
+        this.validRotations_IntList.clear();
 
         for(int x=0; x<PLAY_AREA_SIZE.x; x++){
             for(int y=0; y<PLAY_AREA_SIZE.y; y++){
                 VectorInt pos = new VectorInt(x, y);
 
                 if(IsValidTilePlacement(pos))
-                    validMoves.add(pos);
+                    this.validMoves.add(pos);
                 else
                     continue;
                 
-                boolean[] rotations = GenerateValidRotations(pos, nextSpriteID);
+                boolean[] rotations = FetchValidRotations(pos, nextSpriteID);
                 int count = 0;
                 for(int i=0; i<4; i++){
                     if(rotations[i]) count++;
                 }
                 
-                validRotations_IntList.append(count);
+                this.validRotations_IntList.append(count);
             }
         }
 
-        if(validMoves.size() != 0)
+        if(this.validMoves.size() != 0)
             return true;
         return false;
     }
 
-    public TileData FetchTileData(int tileID){
+    public TileData FetchTileData(int _tileID){
         for(TileData td : tileData_array){
-            if( td.getSpriteID() == tileID )
+            if( td.getSpriteID() == _tileID )
                 return td;
         }
         return null;
     }
 
-    private boolean[] GenerateValidRotations(VectorInt _gridPosition, int _spriteID){
+    private boolean[] FetchValidRotations(VectorInt _gridPosition, int _spriteID){
         // get a list of connections at point
         int[] connectionsList = CalculateNeighbouringFaces(_gridPosition);
 
@@ -357,9 +386,9 @@ class GameController{
     // TILE PROPERTY MAGIC MATH
 
     public int[] CalculateNeighbouringFaces(VectorInt _gridPosition){
+        if(_gridPosition == null) return null;
         int[] facesList = new int[4];
         for(int i=0; i<4; i++){
-            // check a certain position around _gridLocation
             VectorInt checkPosition = new VectorInt(
                 _gridPosition.x + theFourHorsemen[i][0],
                 _gridPosition.y + theFourHorsemen[i][1]
@@ -391,7 +420,17 @@ class GameController{
         moveValidRotationsIndex = 0;
         moveValidRotations_IntList.clear();
 
-        boolean[] correctRotations = GenerateValidRotations(_gridPosition, nextSpriteID);
+
+        boolean[] correctRotations = new boolean[4];
+
+        int[] connectionsList = CalculateNeighbouringFaces(_gridPosition);
+        int[] tileConnections = tileData_array[get_nextSpriteID()].getPortTypes();
+
+        for(int i=0; i<4; i++){
+            int[] rotatedList = RotateListNTimes(tileConnections, i);
+            correctRotations[i] = IsTypeListsMatchable(rotatedList, connectionsList);
+        }
+
 
         for(int i=0; i<4; i++){
             if(correctRotations[i])
@@ -491,6 +530,9 @@ class GameController{
     }
     public IntDict get_tileDistribution(){
         return this.tileDistribution_dict;
+    }
+    public int get_discardCount(){
+        return this.discardCount;
     }
 
     // possible moves properties
