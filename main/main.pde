@@ -20,15 +20,15 @@ public final int WEST  = 3;
 public final String[] DIRECTION_NAMES = {"North", "East", "South", "West"};
 
 // use this maybe???
-enum FaceType{
+enum PortType{
     GRASS   (0, "Grass"),
     ROAD    (1, "Road"),
     CITY    (2, "City"),
     EMPTY   (3, "Empty");
 
-    private final int       index;
-    private final String    label;
-    FaceType(int index, String label){
+    public final int       index;
+    public final String    label;
+    PortType(int index, String label){
         this.index = index;
         this.label = label;
     }
@@ -72,6 +72,12 @@ void mousePressed(){
     }
     if( mouseButton == RIGHT){
         gc_ref.RightMousePressed();
+    }
+}
+
+void keyPressed(){
+    if(key == 'r'){
+        gc_ref.ResetGame();
     }
 }
 

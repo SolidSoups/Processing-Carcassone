@@ -23,7 +23,10 @@ class GraphicsHandler{
         if(gc_ref.isPreviewingMove())
             RenderPreviewTile();
         
-        if(DEBUG_MODE) RenderMouseGridLocation();
+        if(DEBUG_MODE){
+            RenderMouseGridLocation();
+            RenderCheckedFeatures();
+        } 
     }
 
 
@@ -39,7 +42,7 @@ class GraphicsHandler{
             for(int y = 0; y < PLAY_AREA_SIZE.y; y++){
                 Tile tileToRender = pt[x][y];
                 if( tileToRender == null ) continue;
-                this.RenderTile(tileToRender.getSpriteID(), tileToRender.getRotation(), new VectorInt(x, y), false);
+                this.RenderTile(tileToRender.get_spriteID(), tileToRender.get_rotation(), new VectorInt(x, y), false);
             }
         }
     }
@@ -87,6 +90,24 @@ class GraphicsHandler{
 
 
     // DEBUG RENDER METHODS
+
+    private void RenderCheckedFeatures(){
+        ArrayList<Tile> tiles = gc_ref.get_connectedTiles();
+        if(tiles==null) return;
+        
+        pushMatrix();
+        translate(targetMargin + TILE_SIZE/2, targetMargin + TILE_SIZE/2);
+        for(Tile d : tiles){
+            VectorInt gridPos = d.get_gridPosition();
+            pushMatrix();
+            translate(gridPos.x * TILE_SIZE, gridPos.y * TILE_SIZE);
+            fill(255,255,0);
+            ellipseMode(RADIUS);
+            ellipse(0,0, TILE_SIZE*0.1f, TILE_SIZE*0.1f);
+            popMatrix();
+        }
+        popMatrix();
+    }
 
     private void RenderPossiblePlacements(){
         pushMatrix();

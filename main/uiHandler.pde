@@ -197,7 +197,7 @@ class UIHandler{
         int spriteID = gc_ref.get_nextSpriteID();
         VectorInt gridPosition = gc_ref.get_moveGridPosition();
         int tileRotation = gc_ref.get_moveRotation();
-        int[] mainFaces = gc_ref.FetchTileData(spriteID).getPortTypes();
+        int[] mainFaces = gc_ref.FetchTileData(spriteID).get_portTypes();
         int[] surroundingFaces = gc_ref.CalculateNeighbouringFaces(gridPosition);
         IntList correctTileRotations = gc_ref.get_moveValidRotations();
         int correctTileRotationsIndex = gc_ref.get_moveValidRotationsIndex();

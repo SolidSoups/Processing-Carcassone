@@ -110,3 +110,6 @@ I have cleaned up the code just about everywhere. Variables have been given bett
 
 ## E14: February 1, 4:18pm
 Restructured the `drawDeckDistribution` method, allowing it to highlight the tile that was recently drawn in red, and displaying it as 0 if there are none left. I also moved this debug to the left side.
+
+## E15: February 2, 8pm
+I created a method that recursively goes through a recently placed tile and all the road features connected to it, and returns true if the feature is closed. I then use that in the `placeTile()` method and add a score to the game.

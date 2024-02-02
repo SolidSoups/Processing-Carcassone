@@ -1,10 +1,9 @@
 class Tile{
     int         rotation = 0;
-
-    VectorInt   gridPosition;
     int         tileID;
-
     Tile[] neighbours;
+
+    VectorInt gridPosition;
 
     // main constructor
     public Tile(VectorInt gridPosition, int tileID){
@@ -28,14 +27,19 @@ class Tile{
         this.neighbours[_index] = _tileRef;
     }
 
-    // getters
-    public int getSpriteID(){
-        return this.tileID;
-    }
-    public VectorInt getGridPosition(){
+
+    public VectorInt get_gridPosition(){
         return this.gridPosition;
     }
-    public int getRotation(){
+
+    // getters
+    public Tile[] get_neighbours(){
+        return this.neighbours;
+    }
+    public int get_spriteID(){
+        return this.tileID;
+    }
+    public int get_rotation(){
         return this.rotation;
     }
 }

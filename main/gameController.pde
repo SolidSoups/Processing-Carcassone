@@ -31,6 +31,12 @@ class GameController{
     // game control
     private boolean isGameOver = false;
 
+    // player control
+    int score = 0;
+
+    // feature control
+    private ArrayList<Tile> connectedTiles = new ArrayList<Tile>();
+    
     // input control
     private boolean isPreviewingMove        = false;
     private boolean hasConfirmedMove   = false;
@@ -162,8 +168,8 @@ class GameController{
             TileData td = tileData_array[i];
             if(td == null) continue;
 
-            String id = str(td.getSpriteID());
-            int count = td.getTileCount();
+            String id = str(td.get_spriteID());
+            int count = td.get_tileCount();
 
             tileDistribution_dict.set(id, count);
         }
@@ -192,24 +198,27 @@ class GameController{
             if(neighbours[i] == null) continue;
             newTile.AddNeighbour(i, neighbours[i]);
             neighbours[i].AddNeighbour(BoundDirection(i-2), newTile);
-            println("Neighbour " + DIRECTION_NAMES[i] + ": " + neighbours[i].getSpriteID());
         } 
 
-        // highlight a current city feature
+        if(IsRoadFeatureCompleted(newTile)){
+            int roadTileCount = connectedTiles.size();
+            this.score += roadTileCount;
+            println("Score: " + score);
+        }
 
         this.placedTiles_matrix[moveGridPosition.x][moveGridPosition.y] = newTile;
     }
 
     private boolean PositionHasNeighbours(VectorInt _gridPosition){
         for(int i = 0; i < 4; i++){
-            VectorInt checkLocation = new VectorInt(
+            VectorInt checkPosition = new VectorInt(
                 _gridPosition.x + theFourHorsemen[i][0],
                 _gridPosition.y + theFourHorsemen[i][1]
             );
-            if( checkLocation.x < 0 || checkLocation.x >= PLAY_AREA_SIZE.x ||
-            checkLocation.y < 0 || checkLocation.y >= PLAY_AREA_SIZE.y )
-                continue;
-            if(this.placedTiles_matrix[checkLocation.x][checkLocation.y] != null)
+
+            if(!IsWithingPlayArea(checkPosition)) continue;
+            
+            if(this.placedTiles_matrix[checkPosition.x][checkPosition.y] != null)
                 return true;
         }
         return false;
@@ -222,6 +231,9 @@ class GameController{
                 _gridPosition.x + theFourHorsemen[i][0],
                 _gridPosition.y + theFourHorsemen[i][1]
             );
+            
+            if(!IsWithingPlayArea(checkPosition)) continue;
+            
             Tile checkTile = placedTiles_matrix[checkPosition.x][checkPosition.y];
             if(checkTile != null){
                 compassNeighbours[i] = checkTile;
@@ -232,7 +244,132 @@ class GameController{
     }
 
 
-    // FEATURE FUNCTIONALITY
+    // FEATURE FUNCTIONALITY    
+
+    private void FindLeadPorts(Tile _tile, ArrayList<Tile> _leadTiles, IntList _leadPorts){
+        TileData    td          = FetchTileData(_tile.get_spriteID());
+        
+        Tile[]      neighbours  = _tile.get_neighbours();
+
+        int         rotation    = _tile.get_rotation();
+        int[]       portTypes   = RotateListNTimes(td.get_portTypes(), rotation);
+
+        for(int i=0; i<4; i++){
+            if(portTypes[i] == PortType.ROAD.index){
+                _leadPorts.append(i);
+                _leadTiles.add(neighbours[i]);
+            }
+        }
+    }
+
+    // recursive method for checking a completed road feature
+    boolean IsRoadFeatureCompleted(Tile _tile){
+        boolean D = DEBUG_MODE;
+        // clear checked tiles list and add this tile
+        connectedTiles.clear();
+        connectedTiles.add(_tile);
+
+        if(D) println("-Checking road feature at: " + _tile.get_gridPosition());
+
+        // initialize lists and store sum leads
+        IntList         leadPorts   = new IntList();
+        ArrayList<Tile> leadTiles   = new ArrayList<Tile>();
+        FindLeadPorts(_tile, leadTiles, leadPorts); 
+
+        if(D){
+            println("--Lead size: " + leadTiles.size());
+            println("--LeadPorts: ");
+            for(int i=0; i<leadPorts.size(); i++){
+                print(" " + leadPorts.get(i));
+            }
+            println();
+        }
+
+        // check for size and check leads accordingly
+        boolean answer;
+        if(leadPorts.size() == 2){ // only two ports, this road connects through tile
+            if(D) println("--Checking 2 leads!");
+            Tile lead1 = leadTiles.get(0);
+            Tile lead2 = leadTiles.get(1);
+            if(D) println("--Checking first lead");
+            boolean answer1 = IsRoadLeadComplete(_tile, lead1, BoundDirection(leadPorts.get(0) -2));
+            if(D) println("--Checking second lead");
+            boolean answer2 = IsRoadLeadComplete(_tile, lead2, BoundDirection(leadPorts.get(1) -2));
+            answer = answer1 && answer2;
+        }
+        else if(leadPorts.size() > 2 || leadPorts.size() == 1){ // more than two ports, the roads end at this tile
+            if(D) println("--Checking one or over 2 leads!");
+            answer = false;
+            for(int i=0; i<leadPorts.size(); i++){
+                if(D) println("--Checking lead " + i);
+                Tile leadTile = leadTiles.get(i);
+                answer = answer || IsRoadLeadComplete(_tile, leadTile, BoundDirection(leadPorts.get(i) -2));
+            }
+        }
+        else{
+            if(D) println("--No leads to check");
+            return false;
+        }
+
+        return answer;
+    }
+
+    boolean IsRoadLeadComplete(Tile _originTile, Tile _tile, int _fromDirection){
+        boolean D = DEBUG_MODE;
+        // validity checks
+        if(_tile == null){
+            if(D) println("-----Tile is null");
+            return false;
+        }
+        if(D) println("----At position: " + _tile.get_gridPosition());
+        if(_originTile == _tile){
+            if(D) println("-----Lead is at origin");
+            return true;
+        }
+        if(!connectedTiles.contains(_tile))
+            connectedTiles.add(_tile);
+        
+        // fetch tile data
+        if(D) println("----From direction: " + _fromDirection);
+
+        TileData td = FetchTileData(_tile.get_spriteID());
+        boolean[][] connections = td.get_portConnections();
+
+        // adjust fromDirection to tiles rotation
+        int rotation = _tile.get_rotation();
+        int rotatedFromDirection = BoundDirection(_fromDirection - rotation);
+        if(D) println("----Rotated fromDirection: " + rotatedFromDirection);
+
+
+        // check if the port connnects to anything
+        int connectTo = 10;
+        for(int i=0; i<4; i++){
+            if(connections[rotatedFromDirection][i]){
+                connectTo = i;
+                break;
+            }
+        }
+        if(connectTo == 10){
+            if(D) println("-----No connections");
+            return true;
+        }
+
+        // readjust rotation to normal
+        int rotatedConnectTo = BoundDirection(connectTo + rotation);
+
+        // check for neighbour to connect to
+        Tile[] neighbours = _tile.get_neighbours();
+        Tile neighbourToConnectTo = neighbours[rotatedConnectTo];
+        if(neighbourToConnectTo == null){
+            if(D) println("-----Neighbour is null");
+            return false;
+        }
+        
+        if(D) println("-----Continuing lead");
+        // continue lead to neighbour
+        return IsRoadLeadComplete(_originTile, neighbourToConnectTo, BoundDirection(rotatedConnectTo - 2));
+    }
+
 
 
 
@@ -285,7 +422,7 @@ class GameController{
 
     public TileData FetchTileData(int _tileID){
         for(TileData td : tileData_array){
-            if( td.getSpriteID() == _tileID )
+            if( td.get_spriteID() == _tileID )
                 return td;
         }
         return null;
@@ -296,7 +433,7 @@ class GameController{
         int[] connectionsList = CalculateNeighbouringFaces(_gridPosition);
 
         // retrieve _spriteID connection list
-        int[] tileConnections = tileData_array[_spriteID].getPortTypes();
+        int[] tileConnections = tileData_array[_spriteID].get_portTypes();
 
         // Rotates the tile and adds a boolean item determining if the lists match at that certain rotation
         boolean[] answer = new boolean[4];
@@ -305,6 +442,13 @@ class GameController{
             answer[i] = IsTypeListsMatchable(rotatedList, connectionsList);
         }
         return answer;
+    }
+
+    private boolean IsWithingPlayArea(VectorInt _v){
+        if(_v.x < 0 || _v.x >= PLAY_AREA_SIZE.x ||
+        _v.y < 0 || _v.y >= PLAY_AREA_SIZE.y )
+            return false;
+        return true;
     }
 
 
@@ -404,9 +548,9 @@ class GameController{
             if(checkTile == null)
                 faceType = EMPTY;
             else{
-                int checkSpriteID =  checkTile.getSpriteID();
-                int[] dataTilePortList = tileData_array[checkSpriteID].getPortTypes();
-                int[] rotatedDataList = RotateListNTimes(dataTilePortList, checkTile.getRotation());
+                int checkSpriteID =  checkTile.get_spriteID();
+                int[] dataTilePortList = tileData_array[checkSpriteID].get_portTypes();
+                int[] rotatedDataList = RotateListNTimes(dataTilePortList, checkTile.get_rotation());
                 faceType = rotatedDataList[BoundDirection(i+2)];
             }
 
@@ -424,7 +568,7 @@ class GameController{
         boolean[] correctRotations = new boolean[4];
 
         int[] connectionsList = CalculateNeighbouringFaces(_gridPosition);
-        int[] tileConnections = tileData_array[get_nextSpriteID()].getPortTypes();
+        int[] tileConnections = tileData_array[get_nextSpriteID()].get_portTypes();
 
         for(int i=0; i<4; i++){
             int[] rotatedList = RotateListNTimes(tileConnections, i);
@@ -523,7 +667,7 @@ class GameController{
     public int get_nextSpriteID(){
         return this.nextSpriteID;
     }
-
+    
     // tiles
     public Tile[][] get_placedTiles(){
         return this.placedTiles_matrix;
@@ -533,6 +677,11 @@ class GameController{
     }
     public int get_discardCount(){
         return this.discardCount;
+    }
+
+    // features
+    public ArrayList<Tile> get_connectedTiles(){
+        return this.connectedTiles;
     }
 
     // possible moves properties

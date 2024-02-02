@@ -10,21 +10,16 @@ class TileData{
         this.tileCount = tileCount;
     }
 
-    public int getSpriteID(){
+    public int get_spriteID(){
         return this.tileID;
     }
-
-    public int getTileCount(){
+    public int get_tileCount(){
         return this.tileCount;
     }
-
-    // return entire port types list
-    public int[] getPortTypes(){
+    public int[] get_portTypes(){
         return this.portTypes;
     }
-
-    // return port type at compass direction
-    public int getPortType(int i){
-        return this.portTypes[i];
+    public boolean[][] get_portConnections(){
+        return this.portConnections;
     }
 }
