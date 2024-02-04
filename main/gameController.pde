@@ -193,17 +193,17 @@ class GameController{
         
         // set neighbours
         Tile[] neighbours = FetchNeighbours(moveGridPosition);
-        println();
+
         for(int i=0; i<4; i++){
             if(neighbours[i] == null) continue;
             newTile.AddNeighbour(i, neighbours[i]);
-            neighbours[i].AddNeighbour(BoundDirection(i-2), newTile);
+            neighbours[i].AddNeighbour(BoundOrientation(i-2), newTile);
         } 
 
-        if(IsRoadFeatureCompleted(newTile)){
+        if(IsRoadComplete(newTile)){
             int roadTileCount = connectedTiles.size();
-            this.score += roadTileCount;
-            println("Score: " + score);
+            if(DEBUG_MODE)
+                println("Score: " + score);
         }
 
         this.placedTiles_matrix[moveGridPosition.x][moveGridPosition.y] = newTile;
@@ -262,115 +262,123 @@ class GameController{
         }
     }
 
-    // recursive method for checking a completed road feature
-    boolean IsRoadFeatureCompleted(Tile _tile){
-        boolean D = DEBUG_MODE;
-        // clear checked tiles list and add this tile
+    boolean IsRoadComplete(Tile _tile){
+        boolean D = DEBUG_ROAD_FEATURES;
+
         connectedTiles.clear();
         connectedTiles.add(_tile);
 
-        if(D) println("-Checking road feature at: " + _tile.get_gridPosition());
+        if(D) println("\n-Checking if road feature on " + _tile.get_gridPosition() + " is complete.");
 
-        // initialize lists and store sum leads
+
         IntList         leadPorts   = new IntList();
         ArrayList<Tile> leadTiles   = new ArrayList<Tile>();
-        FindLeadPorts(_tile, leadTiles, leadPorts); 
+        FindLeadPorts(_tile, leadTiles, leadPorts);
 
-        if(D){
-            println("--Lead size: " + leadTiles.size());
-            println("--LeadPorts: ");
-            for(int i=0; i<leadPorts.size(); i++){
-                print(" " + leadPorts.get(i));
+        IntList scores = new IntList();
+
+        println("Lead ports size: " + leadPorts.size());
+        for(int i=0; i<leadPorts.size(); i++){
+            Tile tile = leadTiles.get(i);
+            if(tile == null) continue;
+
+            int port = BoundOrientation(leadPorts.get(i)-2);
+            
+            int runningCount = 1;
+            int cap = 20;
+            while(true){
+                println("Following lead " + tile.get_gridPosition());
+                runningCount++;
+                println("-Running Count: "  + runningCount);
+                boolean[][] connections = FetchTileData(tile.get_spriteID()).get_portConnections();
+                int connectionInToTile    = BoundOrientation(port - tile.get_rotation());
+                println("-connectionInToTile: " + connectionInToTile);
+
+                // print table
+                printBooleanTable(connections);
+
+                int nextConnectionInTable = 100;
+                for(int n=0; n<4; n++){
+                    println(n + ": " + connections[connectionInToTile][n]);
+                    if(connections[connectionInToTile][n]){
+                        nextConnectionInTable = n;
+                        println("n: " + n);
+                        break;
+                    }
+                }
+                println("nextConnectionInTable: " + nextConnectionInTable);
+                if(nextConnectionInTable == 100){
+                    println("-Lead ends");
+                    connectedTiles.add(tile);
+                    println(tile.get_gridPosition());
+                    scores.append(runningCount);
+                    break;
+                }
+                int normalizedConnectionToNeighbour = BoundOrientation(nextConnectionInTable + tile.get_rotation());
+                println("normalizedConnectionToNeighbour: " + normalizedConnectionToNeighbour);
+                Tile directNeighbour    = tile.get_neighbours()[normalizedConnectionToNeighbour];
+                if(directNeighbour == null){
+                    connectedTiles.add(tile);
+                    println("-Lead is cut off");
+                    break;
+                }
+                if(directNeighbour == _tile){
+                    println("-Lead has lead to origin tile");
+                    connectedTiles.add(tile);
+                    scores.append(runningCount);
+                    break;
+                }
+
+                println("-Lead continues");
+                connectedTiles.add(tile);
+                port = BoundOrientation(normalizedConnectionToNeighbour -2);
+                println("Next incoming port: " + port);
+                tile = directNeighbour;
+
+                // infinite loop cap
+                cap--;
+                if(cap <= 0) break;
             }
-            println();
-        }
+        } 
 
-        // check for size and check leads accordingly
-        boolean answer;
-        if(leadPorts.size() == 2){ // only two ports, this road connects through tile
-            if(D) println("--Checking 2 leads!");
-            Tile lead1 = leadTiles.get(0);
-            Tile lead2 = leadTiles.get(1);
-            if(D) println("--Checking first lead");
-            boolean answer1 = IsRoadLeadComplete(_tile, lead1, BoundDirection(leadPorts.get(0) -2));
-            if(D) println("--Checking second lead");
-            boolean answer2 = IsRoadLeadComplete(_tile, lead2, BoundDirection(leadPorts.get(1) -2));
-            answer = answer1 && answer2;
-        }
-        else if(leadPorts.size() > 2 || leadPorts.size() == 1){ // more than two ports, the roads end at this tile
-            if(D) println("--Checking one or over 2 leads!");
-            answer = false;
-            for(int i=0; i<leadPorts.size(); i++){
-                if(D) println("--Checking lead " + i);
-                Tile leadTile = leadTiles.get(i);
-                answer = answer || IsRoadLeadComplete(_tile, leadTile, BoundDirection(leadPorts.get(i) -2));
+        println("ScoreSize: " + scores.size());
+        println("LeadPortsSize: " + leadPorts.size());
+        if(leadPorts.size() == 2){
+            if(scores.size() != 2){
+                connectedTiles.clear();
+                return false;
+            }
+            if( scores.get(0) > 0 || scores.get(1) > 0 ){
+                this.score += scores.get(0) + scores.get(1);
+                return true;
             }
         }
-        else{
-            if(D) println("--No leads to check");
-            return false;
+        else if(leadPorts.size() > 0){
+            int sumScore = 0;
+            for(int i : scores)
+                sumScore += i;
+            if(sumScore > 0){
+                this.score += sumScore;
+                return true;
+            }
         }
 
-        return answer;
+        connectedTiles.clear();
+        return false;
     }
 
-    boolean IsRoadLeadComplete(Tile _originTile, Tile _tile, int _fromDirection){
-        boolean D = DEBUG_MODE;
-        // validity checks
-        if(_tile == null){
-            if(D) println("-----Tile is null");
-            return false;
-        }
-        if(D) println("----At position: " + _tile.get_gridPosition());
-        if(_originTile == _tile){
-            if(D) println("-----Lead is at origin");
-            return true;
-        }
-        if(!connectedTiles.contains(_tile))
-            connectedTiles.add(_tile);
-        
-        // fetch tile data
-        if(D) println("----From direction: " + _fromDirection);
-
-        TileData td = FetchTileData(_tile.get_spriteID());
-        boolean[][] connections = td.get_portConnections();
-
-        // adjust fromDirection to tiles rotation
-        int rotation = _tile.get_rotation();
-        int rotatedFromDirection = BoundDirection(_fromDirection - rotation);
-        if(D) println("----Rotated fromDirection: " + rotatedFromDirection);
-
-
-        // check if the port connnects to anything
-        int connectTo = 10;
-        for(int i=0; i<4; i++){
-            if(connections[rotatedFromDirection][i]){
-                connectTo = i;
-                break;
+    void printBooleanTable(boolean[][] table){
+        String[] values = {"North", "East", "South", "West"};
+        println("From/To:\tNorth\tEast\tSouth\tWest");
+        for(int x=0; x<4; x++){
+            String newRow = "";
+            newRow += values[x] + "\t\t";
+            for(int y=0; y<4; y++){
+                newRow += table[x][y] + "\t";
             }
+            println(newRow);
         }
-        if(connectTo == 10){
-            if(D) println("-----No connections");
-            return true;
-        }
-
-        // readjust rotation to normal
-        int rotatedConnectTo = BoundDirection(connectTo + rotation);
-
-        // check for neighbour to connect to
-        Tile[] neighbours = _tile.get_neighbours();
-        Tile neighbourToConnectTo = neighbours[rotatedConnectTo];
-        if(neighbourToConnectTo == null){
-            if(D) println("-----Neighbour is null");
-            return false;
-        }
-        
-        if(D) println("-----Continuing lead");
-        // continue lead to neighbour
-        return IsRoadLeadComplete(_originTile, neighbourToConnectTo, BoundDirection(rotatedConnectTo - 2));
     }
-
-
 
 
 
@@ -546,12 +554,12 @@ class GameController{
             // set facetype depending on if there is a tile or not
             int faceType;
             if(checkTile == null)
-                faceType = EMPTY;
+                faceType = PortType.EMPTY.index;
             else{
                 int checkSpriteID =  checkTile.get_spriteID();
                 int[] dataTilePortList = tileData_array[checkSpriteID].get_portTypes();
                 int[] rotatedDataList = RotateListNTimes(dataTilePortList, checkTile.get_rotation());
-                faceType = rotatedDataList[BoundDirection(i+2)];
+                faceType = rotatedDataList[BoundOrientation(i+2)];
             }
 
             // add that type to the facesList
@@ -600,7 +608,7 @@ class GameController{
 
     private boolean IsTypeListsMatchable(int[] _tileTypeList, int[] _surrTypeList){
         for(int i=0; i<4; i++){
-            if(_surrTypeList[i] == EMPTY)
+            if(_surrTypeList[i] == PortType.EMPTY.index)
                 continue;
             if(_surrTypeList[i] != _tileTypeList[i])
                 return false;

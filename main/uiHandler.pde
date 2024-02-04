@@ -51,8 +51,9 @@ class UIHandler{
             drawConditionalButton();
         }
 
-        if(DEBUG_MODE) {
+        if(DEBUG_DECK_DISTRIBUTION) {
             drawTileDistribution();
+        if(DEBUG_TILE_PROPERTIES)
             drawMoveVariables();
         }
     }
@@ -228,14 +229,14 @@ class UIHandler{
         translate(0,25);
         
         // tile rotation
-        text("Tile Rotation: " + DIRECTION_NAMES[tileRotation], 0, 0);
+        text("Tile Rotation: " + Orientation.values()[tileRotation], 0, 0);
         translate(0,40);
         
         // main faces
         String s = "null";
-        s = "[ " + TYPE_NAMES[mainFaces[0]];
+        s = "[ " + PortType.values()[mainFaces[0]];
         for(int i=1; i<mainFaces.length; i++){
-            s += ", " + TYPE_NAMES[mainFaces[i]];
+            s += ", " + PortType.values()[mainFaces[i]];
         }
         s += " ]";
         text("Main faces: " + s, 0, 0);
@@ -244,9 +245,9 @@ class UIHandler{
         // surrounding faces
         s = "null";
         if(surroundingFaces != null){
-            s = "[ " + TYPE_NAMES[surroundingFaces[0]];
+            s = "[ " + PortType.values()[(surroundingFaces[0])];
             for(int i=1; i<surroundingFaces.length; i++){
-                s += ", " + TYPE_NAMES[surroundingFaces[i]];
+                s += ", " + PortType.values()[surroundingFaces[i]];
             }
             s += " ]";
         }
@@ -256,9 +257,9 @@ class UIHandler{
         // correct rotations
         s = "null";
         if( correctTileRotations.size() != 0 ){
-            s = "[ " + DIRECTION_NAMES[correctTileRotations.get(0)];
+            s = "[ " + Orientation.values()[correctTileRotations.get(0)];
             for(int i=1; i<correctTileRotations.size(); i++){
-                s += ", " + DIRECTION_NAMES[correctTileRotations.get(i)];
+                s += ", " + Orientation.values()[correctTileRotations.get(i)];
             }
             s += " ]";
         }

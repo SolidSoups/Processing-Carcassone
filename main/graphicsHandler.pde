@@ -23,10 +23,10 @@ class GraphicsHandler{
         if(gc_ref.isPreviewingMove())
             RenderPreviewTile();
         
-        if(DEBUG_MODE){
+        if(DEBUG_MODE)
             RenderMouseGridLocation();
+        if(DEBUG_ROAD_FEATURES)
             RenderCheckedFeatures();
-        } 
     }
 
 

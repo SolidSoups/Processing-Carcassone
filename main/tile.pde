@@ -9,7 +9,7 @@ class Tile{
     public Tile(VectorInt gridPosition, int tileID){
         this.gridPosition = gridPosition;
         this.tileID = tileID;
-        this.rotation = NORTH;
+        this.rotation = Orientation.NORTH.index;
 
         neighbours = new Tile[4];
     }

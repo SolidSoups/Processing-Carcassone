@@ -113,3 +113,6 @@ Restructured the `drawDeckDistribution` method, allowing it to highlight the til
 
 ## E15: February 2, 8pm
 I created a method that recursively goes through a recently placed tile and all the road features connected to it, and returns true if the feature is closed. I then use that in the `placeTile()` method and add a score to the game.
+
+## E16: February 4, 1:40pm
+I finally got the method working for detecting if a road feature has been completed. Suffice to say it has been a long journey, and i finnally feel like i understand it to some extent. Now i gotta simplify the code as much as possible... im not excited for the city feature control, or even the farms...
