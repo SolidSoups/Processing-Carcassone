@@ -48,7 +48,10 @@ class GraphicsHandler{
     }
 
     private void RenderPreviewTile(){
-        this.RenderTile(gc_ref.get_nextSpriteID(), gc_ref.get_moveRotation(),  gc_ref.get_moveGridPosition(), true);
+        int spriteID = gc_ref.get_nextSpriteID();
+        Move currentMove = gc_ref.get_currentMove();
+
+        this.RenderTile(spriteID, currentMove.get_rotation(),  currentMove.get_gridPosition(), true);
     }
 
     private void RenderTile(int spriteID, int rotation, VectorInt gridLocation, boolean highlight){
@@ -92,7 +95,7 @@ class GraphicsHandler{
     // DEBUG RENDER METHODS
 
     private void RenderCheckedFeatures(){
-        ArrayList<Tile> tiles = gc_ref.get_connectedTiles();
+        ArrayList<Tile> tiles = gc_ref.get_features().get_lastCompletedRoad();
         if(tiles==null) return;
         
         pushMatrix();

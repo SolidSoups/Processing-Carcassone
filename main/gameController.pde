@@ -4,6 +4,8 @@ class GameController{
     // handlers
     GraphicsHandler graphicsHandler;
     UIHandler       uiHandler;
+    Deck gameDeck;
+    Features features;
 
     // sprites
     PImage[]    sprites;
@@ -18,24 +20,14 @@ class GameController{
     ArrayList<VectorInt>    validMoves              = new ArrayList<VectorInt>();
     IntList                 validRotations_IntList  = new IntList();
 
-    // tile deck properties
-    IntDict tileDistribution_dict;
-    int     discardCount = 0;
-
-    // preview tile properties
-    private VectorInt   moveGridPosition;
-    private int         moveRotation;
-    private IntList     moveValidRotations_IntList  = new IntList();
-    private int         moveValidRotationsIndex;
+    // move handler
+    private Move        currentMove;
 
     // game control
     private boolean isGameOver = false;
 
     // player control
     int score = 0;
-
-    // feature control
-    private ArrayList<Tile> connectedTiles = new ArrayList<Tile>();
     
     // input control
     private boolean isPreviewingMove        = false;
@@ -44,6 +36,12 @@ class GameController{
 
     // finals
     final int[][] theFourHorsemen = {{0,-1}, {1,0}, {0,1}, {-1,0}};
+
+
+
+
+
+
 
 
 
@@ -71,11 +69,16 @@ class GameController{
 
 
 
+
+
+
+
+
     // MAIN METHODS
 
     public void Update(){
         // check if game is over
-        if(this.tileDistribution_dict.size() == 0){
+        if(this.gameDeck.isEmpty()){
             this.GameOver();
             return;
         }
@@ -84,7 +87,12 @@ class GameController{
         if(this.isPreviewingMove && this.hasConfirmedMove){
             PlaceTile();
             ClearInputFlags();
-            DrawNextTile();
+
+            // grab a new card that can be placed
+            gameDeck.DrawCard();
+            while(!IsPlacementPossible()){
+                gameDeck.DrawCard();
+            }
         }
     }
 
@@ -93,13 +101,9 @@ class GameController{
         uiHandler.Render();
     }
 
-
-
-
-    // GAME FUNCTIONALITY
-
     private void GameOver(){
         this.isGameOver = true;
+        println("Game Over");
         delay(10000);
         ResetGame();
     }
@@ -109,10 +113,11 @@ class GameController{
         graphicsHandler = new GraphicsHandler(this);
         uiHandler = new UIHandler(this);
 
+        gameDeck = new Deck(this);
+        features = new Features(this);
+
         // initialize arrays
         placedTiles_matrix      = new Tile[PLAY_AREA_SIZE.x][PLAY_AREA_SIZE.y];
-        tileDistribution_dict   = new IntDict();
-        discardCount = 0;
 
         ClearInputFlags();
 
@@ -121,59 +126,23 @@ class GameController{
         placedTiles_matrix[middlePosition.x][middlePosition.y] = new Tile(middlePosition, 14);
 
         // Fill deck with cards and remove one starter tile
-        FillDeck();
-        tileDistribution_dict.sub("14", 1);
+        gameDeck.FillDeck(14);
 
         // draw the next tile
-        DrawNextTile();
+        gameDeck.DrawCard();
+    }
+
+    public void AddScore(int score){
+        this.score += score;
     }
 
 
 
 
 
-    // DECK FUNCTIONALITY
 
-    public void DrawNextTile(){
-        if(this.tileDistribution_dict.size() == 0) return;
 
-        int randomIndex = int( random(0, this.tileDistribution_dict.size() ) );
 
-        String spriteID  = this.tileDistribution_dict.keyArray()[ randomIndex ];
-        int tileCount = this.tileDistribution_dict.get( spriteID );
-        
-        // decrease the tileCount
-        this.tileDistribution_dict.sub( spriteID, 1 );
-        if(this.tileDistribution_dict.get( spriteID ) == 0)
-            this.tileDistribution_dict.remove( spriteID );
-
-        nextSpriteID = int( spriteID );
-        
-        if(!IsPlacementPossible()){
-            discardCount++;
-            DrawNextTile();
-        }
-    }
-
-    public int GetDistributionCount(){
-        int count = 0;
-        for(int i : tileDistribution_dict.values())
-            count += i;
-        return count;
-    }
-
-    private void FillDeck(){
-        tileDistribution_dict.clear();
-        for(int i=0; i<tileData_array.length; i++){
-            TileData td = tileData_array[i];
-            if(td == null) continue;
-
-            String id = str(td.get_spriteID());
-            int count = td.get_tileCount();
-
-            tileDistribution_dict.set(id, count);
-        }
-    }
 
 
 
@@ -185,14 +154,15 @@ class GameController{
     }
 
     public PImage getNextSprite(){
-        return this.sprites[nextSpriteID];
+        return this.sprites[this.gameDeck.get_currentCard()];
     }
 
     private void PlaceTile(){
-        Tile newTile = new Tile(moveGridPosition, nextSpriteID, moveRotation);
+        VectorInt gridPosition = this.currentMove.get_gridPosition();
+        Tile newTile = new Tile(gridPosition, this.gameDeck.get_currentCard(), this.currentMove.get_rotation());
         
         // set neighbours
-        Tile[] neighbours = FetchNeighbours(moveGridPosition);
+        Tile[] neighbours = FetchNeighbours(gridPosition);
 
         for(int i=0; i<4; i++){
             if(neighbours[i] == null) continue;
@@ -200,13 +170,13 @@ class GameController{
             neighbours[i].AddNeighbour(BoundOrientation(i-2), newTile);
         } 
 
-        if(IsRoadComplete(newTile)){
-            int roadTileCount = connectedTiles.size();
+        if(!this.features.IsRoadComplete(newTile)){
             if(DEBUG_MODE)
-                println("Score: " + score);
+                println("Total Score: " + score);
         }
 
-        this.placedTiles_matrix[moveGridPosition.x][moveGridPosition.y] = newTile;
+
+        this.placedTiles_matrix[gridPosition.x][gridPosition.y] = newTile;
     }
 
     private boolean PositionHasNeighbours(VectorInt _gridPosition){
@@ -216,7 +186,7 @@ class GameController{
                 _gridPosition.y + theFourHorsemen[i][1]
             );
 
-            if(!IsWithingPlayArea(checkPosition)) continue;
+            if(!IsWithingGridPlayArea(checkPosition)) continue;
             
             if(this.placedTiles_matrix[checkPosition.x][checkPosition.y] != null)
                 return true;
@@ -232,7 +202,7 @@ class GameController{
                 _gridPosition.y + theFourHorsemen[i][1]
             );
             
-            if(!IsWithingPlayArea(checkPosition)) continue;
+            if(!IsWithingGridPlayArea(checkPosition)) continue;
             
             Tile checkTile = placedTiles_matrix[checkPosition.x][checkPosition.y];
             if(checkTile != null){
@@ -244,141 +214,11 @@ class GameController{
     }
 
 
-    // FEATURE FUNCTIONALITY    
-
-    private void FindLeadPorts(Tile _tile, ArrayList<Tile> _leadTiles, IntList _leadPorts){
-        TileData    td          = FetchTileData(_tile.get_spriteID());
-        
-        Tile[]      neighbours  = _tile.get_neighbours();
-
-        int         rotation    = _tile.get_rotation();
-        int[]       portTypes   = RotateListNTimes(td.get_portTypes(), rotation);
-
-        for(int i=0; i<4; i++){
-            if(portTypes[i] == PortType.ROAD.index){
-                _leadPorts.append(i);
-                _leadTiles.add(neighbours[i]);
-            }
-        }
-    }
-
-    boolean IsRoadComplete(Tile _tile){
-        boolean D = DEBUG_ROAD_FEATURES;
-
-        connectedTiles.clear();
-        connectedTiles.add(_tile);
-
-        if(D) println("\n-Checking if road feature on " + _tile.get_gridPosition() + " is complete.");
 
 
-        IntList         leadPorts   = new IntList();
-        ArrayList<Tile> leadTiles   = new ArrayList<Tile>();
-        FindLeadPorts(_tile, leadTiles, leadPorts);
 
-        IntList scores = new IntList();
 
-        println("Lead ports size: " + leadPorts.size());
-        for(int i=0; i<leadPorts.size(); i++){
-            Tile tile = leadTiles.get(i);
-            if(tile == null) continue;
 
-            int port = BoundOrientation(leadPorts.get(i)-2);
-            
-            int runningCount = 1;
-            int cap = 20;
-            while(true){
-                println("Following lead " + tile.get_gridPosition());
-                runningCount++;
-                println("-Running Count: "  + runningCount);
-                boolean[][] connections = FetchTileData(tile.get_spriteID()).get_portConnections();
-                int connectionInToTile    = BoundOrientation(port - tile.get_rotation());
-                println("-connectionInToTile: " + connectionInToTile);
-
-                // print table
-                printBooleanTable(connections);
-
-                int nextConnectionInTable = 100;
-                for(int n=0; n<4; n++){
-                    println(n + ": " + connections[connectionInToTile][n]);
-                    if(connections[connectionInToTile][n]){
-                        nextConnectionInTable = n;
-                        println("n: " + n);
-                        break;
-                    }
-                }
-                println("nextConnectionInTable: " + nextConnectionInTable);
-                if(nextConnectionInTable == 100){
-                    println("-Lead ends");
-                    connectedTiles.add(tile);
-                    println(tile.get_gridPosition());
-                    scores.append(runningCount);
-                    break;
-                }
-                int normalizedConnectionToNeighbour = BoundOrientation(nextConnectionInTable + tile.get_rotation());
-                println("normalizedConnectionToNeighbour: " + normalizedConnectionToNeighbour);
-                Tile directNeighbour    = tile.get_neighbours()[normalizedConnectionToNeighbour];
-                if(directNeighbour == null){
-                    connectedTiles.add(tile);
-                    println("-Lead is cut off");
-                    break;
-                }
-                if(directNeighbour == _tile){
-                    println("-Lead has lead to origin tile");
-                    connectedTiles.add(tile);
-                    scores.append(runningCount);
-                    break;
-                }
-
-                println("-Lead continues");
-                connectedTiles.add(tile);
-                port = BoundOrientation(normalizedConnectionToNeighbour -2);
-                println("Next incoming port: " + port);
-                tile = directNeighbour;
-
-                // infinite loop cap
-                cap--;
-                if(cap <= 0) break;
-            }
-        } 
-
-        println("ScoreSize: " + scores.size());
-        println("LeadPortsSize: " + leadPorts.size());
-        if(leadPorts.size() == 2){
-            if(scores.size() != 2){
-                connectedTiles.clear();
-                return false;
-            }
-            if( scores.get(0) > 0 || scores.get(1) > 0 ){
-                this.score += scores.get(0) + scores.get(1);
-                return true;
-            }
-        }
-        else if(leadPorts.size() > 0){
-            int sumScore = 0;
-            for(int i : scores)
-                sumScore += i;
-            if(sumScore > 0){
-                this.score += sumScore;
-                return true;
-            }
-        }
-
-        connectedTiles.clear();
-        return false;
-    }
-
-    void printBooleanTable(boolean[][] table){
-        String[] values = {"North", "East", "South", "West"};
-        println("From/To:\tNorth\tEast\tSouth\tWest");
-        for(int x=0; x<4; x++){
-            String newRow = "";
-            newRow += values[x] + "\t\t";
-            for(int y=0; y<4; y++){
-                newRow += table[x][y] + "\t";
-            }
-            println(newRow);
-        }
-    }
 
 
 
@@ -390,7 +230,7 @@ class GameController{
         if( !PositionHasNeighbours(_gridPosition) )
             return false;
 
-        boolean[] _gridPositionCorrectRotations = FetchValidRotations(_gridPosition, nextSpriteID);
+        boolean[] _gridPositionCorrectRotations = FetchValidRotations(_gridPosition, this.gameDeck.get_currentCard());
         boolean noRotations = false;
         for(int i=0; i<4; i++)
             noRotations = noRotations || _gridPositionCorrectRotations[i];
@@ -401,6 +241,7 @@ class GameController{
     }
 
     public boolean IsPlacementPossible(){
+        int spriteID = gameDeck.get_currentCard();
         this.validMoves.clear();
         this.validRotations_IntList.clear();
 
@@ -413,7 +254,7 @@ class GameController{
                 else
                     continue;
                 
-                boolean[] rotations = FetchValidRotations(pos, nextSpriteID);
+                boolean[] rotations = FetchValidRotations(pos, spriteID);
                 int count = 0;
                 for(int i=0; i<4; i++){
                     if(rotations[i]) count++;
@@ -452,91 +293,6 @@ class GameController{
         return answer;
     }
 
-    private boolean IsWithingPlayArea(VectorInt _v){
-        if(_v.x < 0 || _v.x >= PLAY_AREA_SIZE.x ||
-        _v.y < 0 || _v.y >= PLAY_AREA_SIZE.y )
-            return false;
-        return true;
-    }
-
-
-
-    // INPUT
-
-    public void LeftMousePressed(){
-        // check for UI click
-        if( uiHandler.IsInsideUI() ){
-            int buttonPressed = uiHandler.LeftMousePressed();
-            if( buttonPressed == uiHandler.CANCEL){
-                ClearInputFlags();
-            }
-            else if( buttonPressed == uiHandler.CONFIRM){
-                this.hasConfirmedMove = true;
-            }
-            return;
-        }
-
-        if( !MouseWithinPlayarea() )
-            return;
-
-        VectorInt mouseGridPos = MouseToGridPosition();
-        if( mouseGridPos == null ) return;
-
-        if( !IsValidTilePlacement(mouseGridPos) )
-            return;
-        
-        // generate correct rotations
-        GenerateCorrectRotations(mouseGridPos);
-
-        moveGridPosition = mouseGridPos;
-        this.isPreviewingMove = true;
-    }
-
-    public void RightMousePressed(){
-        if( isPreviewingMove ){
-            moveValidRotationsIndex++;
-            if(moveValidRotationsIndex > (moveValidRotations_IntList.size()-1))
-                moveValidRotationsIndex = 0;
-            moveRotation = moveValidRotations_IntList.get(moveValidRotationsIndex);
-        }
-    }
-
-    public VectorInt MouseToGridPosition(){
-        PVector offsetMousePos = new PVector(mouseX-targetMargin, mouseY-targetMargin);
-        if( offsetMousePos.x < 0 || offsetMousePos.y < 0 || offsetMousePos.x >= (PLAY_AREA_SIZE.x*TILE_SIZE) || offsetMousePos.y >= (PLAY_AREA_SIZE.y*TILE_SIZE) )
-            return null;
-        
-        return new VectorInt( int(offsetMousePos.x / TILE_SIZE), int(offsetMousePos.y / TILE_SIZE) );
-    }
-
-    private boolean MouseWithinPlayarea(){
-        if( mouseX <= targetMargin || mouseY <= targetMargin ||
-        mouseX >= (targetMargin + PLAY_AREA_SIZE.x*TILE_SIZE) ||
-        mouseY >= (targetMargin + PLAY_AREA_SIZE.y*TILE_SIZE))
-            return false;
-        return true;
-    }
-
-    private void ClearInputFlags(){
-        this.hasConfirmedMove = false;
-        this.isPreviewingMove = false;
-        moveValidRotations_IntList.clear();
-        moveValidRotationsIndex = 0;
-    }
-
-    // HELLO ROZA   ! ! ! ! ! ! <3
-    //
-    //     |\__/,|   (`\
-    //   _.|o o  |_   ) )
-    // -(((---(((--------
-    //
-    
-
-    
-
-
-    // TILE PROPERTY MAGIC MATH
-
     public int[] CalculateNeighbouringFaces(VectorInt _gridPosition){
         if(_gridPosition == null) return null;
         int[] facesList = new int[4];
@@ -568,28 +324,98 @@ class GameController{
         return facesList;
     }
 
-    private void GenerateCorrectRotations(VectorInt _gridPosition){
-        moveValidRotationsIndex = 0;
-        moveValidRotations_IntList.clear();
-
-
-        boolean[] correctRotations = new boolean[4];
-
-        int[] connectionsList = CalculateNeighbouringFaces(_gridPosition);
-        int[] tileConnections = tileData_array[get_nextSpriteID()].get_portTypes();
-
-        for(int i=0; i<4; i++){
-            int[] rotatedList = RotateListNTimes(tileConnections, i);
-            correctRotations[i] = IsTypeListsMatchable(rotatedList, connectionsList);
-        }
-
-
-        for(int i=0; i<4; i++){
-            if(correctRotations[i])
-                moveValidRotations_IntList.append(i);
-        }
-        moveRotation = moveValidRotations_IntList.get(0);
+    private boolean IsWithingGridPlayArea(VectorInt _v){
+        if(_v.x < 0 || _v.x >= PLAY_AREA_SIZE.x ||
+        _v.y < 0 || _v.y >= PLAY_AREA_SIZE.y )
+            return false;
+        return true;
     }
+
+
+
+
+
+
+
+
+    // INPUT
+
+    public void LeftMousePressed(){
+        // check for UI click
+        if( uiHandler.IsInsideUI() ){
+            int buttonPressed = uiHandler.LeftMousePressed();
+            if( buttonPressed == uiHandler.CANCEL){
+                ClearInputFlags();
+            }
+            else if( buttonPressed == uiHandler.CONFIRM){
+                this.hasConfirmedMove = true;
+            }
+            return;
+        }
+
+        if( !MouseWithinPlayarea() )
+            return;
+
+        VectorInt mouseGridPos = MouseToGridPosition();
+        if( mouseGridPos == null ) return;
+
+        if( !IsValidTilePlacement(mouseGridPos) ){
+            currentMove = null;
+            return;
+        }
+        
+        currentMove = new Move(this, mouseGridPos);
+
+        this.isPreviewingMove = true;
+    }
+
+
+    public void RightMousePressed(){
+        if( isPreviewingMove ){
+            currentMove.NextRotation();
+        }
+    }
+
+    public VectorInt MouseToGridPosition(){
+        PVector offsetMousePos = new PVector(mouseX-targetMargin, mouseY-targetMargin);
+        if( offsetMousePos.x < 0 || offsetMousePos.y < 0 || offsetMousePos.x >= (PLAY_AREA_SIZE.x*TILE_SIZE) || offsetMousePos.y >= (PLAY_AREA_SIZE.y*TILE_SIZE) )
+            return null;
+        
+        return new VectorInt( int(offsetMousePos.x / TILE_SIZE), int(offsetMousePos.y / TILE_SIZE) );
+    }
+
+    private boolean MouseWithinPlayarea(){
+        if( mouseX <= targetMargin || mouseY <= targetMargin ||
+        mouseX >= (targetMargin + PLAY_AREA_SIZE.x*TILE_SIZE) ||
+        mouseY >= (targetMargin + PLAY_AREA_SIZE.y*TILE_SIZE))
+            return false;
+        return true;
+    }
+
+    private void ClearInputFlags(){
+        this.hasConfirmedMove = false;
+        this.isPreviewingMove = false;
+        this.currentMove = null;
+    }
+
+    // HELLO ROZA   ! ! ! ! ! ! <3
+    //
+    //     |\__/,|   (`\
+    //   _.|o o  |_   ) )
+    // -(((---(((--------
+    //
+    
+
+    
+
+
+
+
+
+
+
+
+    // TILE PROPERTY MAGIC MATH
 
     private int[] RotateListNTimes(int[] _list, int _n){
         int[] rotatedList = _list;
@@ -615,6 +441,13 @@ class GameController{
         }
         return true;
     }
+
+
+
+
+
+
+
 
 
 
@@ -669,27 +502,37 @@ class GameController{
 
 
 
+
+
+
+
+
+
     // GETTERS
+
+    public Move get_currentMove(){
+        return this.currentMove;
+    }
 
     // sprite
     public int get_nextSpriteID(){
-        return this.nextSpriteID;
+        return this.gameDeck.get_currentCard();
     }
     
     // tiles
     public Tile[][] get_placedTiles(){
         return this.placedTiles_matrix;
     }
-    public IntDict get_tileDistribution(){
-        return this.tileDistribution_dict;
+    public Deck get_gameDeck(){
+        return this.gameDeck;
     }
-    public int get_discardCount(){
-        return this.discardCount;
+    public Features get_features(){
+        return this.features;
     }
 
-    // features
-    public ArrayList<Tile> get_connectedTiles(){
-        return this.connectedTiles;
+    // tile data
+    public TileData[] get_tileDataArray(){
+        return this.tileData_array;
     }
 
     // possible moves properties
@@ -699,21 +542,6 @@ class GameController{
     public ArrayList<VectorInt> get_validMoves(){
         return this.validMoves;
     }
-
-    // move properties
-    public VectorInt get_moveGridPosition(){
-        return this.moveGridPosition;
-    }
-    public int get_moveRotation(){
-        return this.moveRotation;
-    }
-    public IntList get_moveValidRotations(){
-        return this.moveValidRotations_IntList;
-    }
-    public int get_moveValidRotationsIndex(){
-        return this.moveValidRotationsIndex;
-    }
-
     public boolean isPreviewingMove(){
         return this.isPreviewingMove;
     }

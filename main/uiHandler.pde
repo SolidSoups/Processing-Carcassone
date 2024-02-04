@@ -129,7 +129,7 @@ class UIHandler{
     // DEBUG
 
     private void drawTileDistribution(){
-        IntDict     tileDistr           = gc_ref.get_tileDistribution();
+        IntDict     tileDistr           = gc_ref.get_gameDeck().get_deck();
         String[]    tileDistr_keys      = tileDistr.keyArray();
         int[]       tileDistr_values    = tileDistr.valueArray();
 
@@ -162,7 +162,7 @@ class UIHandler{
 
         fill(0,255,200);
         
-        text("Count: " + gc_ref.GetDistributionCount() + "   D: " + gc_ref.get_discardCount(), 0, -20);
+        text("Count: " + gc_ref.get_gameDeck().CardsRemaining(), 0, -20);
         
         int prevKey = -1;
         for(int i=0; i<tileDistr_keys_list.size(); i++){
@@ -195,13 +195,27 @@ class UIHandler{
     }
 
     private void drawMoveVariables(){
-        int spriteID = gc_ref.get_nextSpriteID();
-        VectorInt gridPosition = gc_ref.get_moveGridPosition();
-        int tileRotation = gc_ref.get_moveRotation();
-        int[] mainFaces = gc_ref.FetchTileData(spriteID).get_portTypes();
-        int[] surroundingFaces = gc_ref.CalculateNeighbouringFaces(gridPosition);
-        IntList correctTileRotations = gc_ref.get_moveValidRotations();
-        int correctTileRotationsIndex = gc_ref.get_moveValidRotationsIndex();
+        int spriteID                    = gc_ref.get_nextSpriteID();
+
+        Move        currentMove         = gc_ref.get_currentMove();
+        VectorInt gridPosition;
+        int tileRotation, validRotationsIndex;
+        IntList validRotations;
+        if(currentMove != null) {
+            gridPosition        = currentMove.get_gridPosition();
+            tileRotation        = currentMove.get_rotation();
+            validRotations      = currentMove.get_validRotations();
+            validRotationsIndex = currentMove.get_validRotationsIndex();
+        }
+        else{
+            gridPosition = null;
+            tileRotation = 0;
+            validRotations = null;
+            validRotationsIndex = 0;
+        }
+        
+        int[] mainFaces                 = gc_ref.FetchTileData(spriteID).get_portTypes();
+        int[] surroundingFaces          = gc_ref.CalculateNeighbouringFaces(gridPosition);
         
         
         pushMatrix();
@@ -256,10 +270,10 @@ class UIHandler{
         
         // correct rotations
         s = "null";
-        if( correctTileRotations.size() != 0 ){
-            s = "[ " + Orientation.values()[correctTileRotations.get(0)];
-            for(int i=1; i<correctTileRotations.size(); i++){
-                s += ", " + Orientation.values()[correctTileRotations.get(i)];
+        if( validRotations != null && validRotations.size() != 0 ){
+            s = "[ " + Orientation.values()[validRotations.get(0)];
+            for(int i=1; i<validRotations.size(); i++){
+                s += ", " + Orientation.values()[validRotations.get(i)];
             }
             s += " ]";
         }
@@ -267,7 +281,7 @@ class UIHandler{
         translate(0,25);
         
         // correct rotation index
-        text("Correct rotations index: " + correctTileRotationsIndex, 0, 0);
+        text("Correct rotations index: " + validRotationsIndex, 0, 0);
         translate(0,25);
         
 
